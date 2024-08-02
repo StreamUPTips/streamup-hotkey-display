@@ -1,4 +1,5 @@
 #include "streamup-hotkey-display-dock.hpp"
+#include "streamup-hotkey-display-settings.hpp"
 #include "version.h"
 #include <obs-module.h>
 #include <obs-frontend-api.h>
@@ -241,12 +242,6 @@ void obs_module_unload()
 	if (keyboardHook) {
 		UnhookWindowsHookEx(keyboardHook);
 		keyboardHook = NULL;
-	}
-
-	// Properly clean up the hotkey display dock
-	if (hotkeyDisplayDock) {
-		delete hotkeyDisplayDock;
-		hotkeyDisplayDock = nullptr;
 	}
 }
 

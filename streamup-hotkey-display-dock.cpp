@@ -1,6 +1,8 @@
 #include "streamup-hotkey-display-dock.hpp"
+#include "streamup-hotkey-display-settings.hpp"
 #include <windows.h>
 #include <obs.h>
+#include <QIcon>
 
 extern HHOOK keyboardHook;                                                     // Declare the external keyboard hook variable
 extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam); // Declare the external keyboard procedure
@@ -8,8 +10,10 @@ extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam); /
 HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	: QFrame(parent),
 	  layout(new QVBoxLayout(this)),
+	  buttonLayout(new QHBoxLayout()), // Add a horizontal layout for the buttons
 	  label(new QLabel(this)),
 	  toggleButton(new QPushButton("Disable Hook", this)),
+	  settingsButton(new QPushButton(this)),
 	  hookEnabled(true)
 {
 	label->setAlignment(Qt::AlignCenter);
@@ -24,13 +28,27 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	label->setFixedHeight(50);
 	layout->addWidget(label);
 
-	// Add the toggle button
+	// Configure the toggle button
 	toggleButton->setFixedHeight(30);
-	layout->addWidget(toggleButton);
+
+	// Configure the settings button with icon
+	settingsButton->setMinimumSize(26, 22);
+	settingsButton->setMaximumSize(26, 22);
+	settingsButton->setProperty("themeID", "configIconSmall");
+	settingsButton->setIconSize(QSize(20, 20));
+
+	// Add the buttons to the horizontal layout
+	buttonLayout->addWidget(toggleButton);
+	buttonLayout->addWidget(settingsButton);
+
+	// Add the horizontal layout to the main layout
+	layout->addLayout(buttonLayout);
+
 	setLayout(layout);
 
-	// Connect the button click to the slot
+	// Connect the buttons to their slots
 	connect(toggleButton, &QPushButton::clicked, this, &HotkeyDisplayDock::toggleKeyboardHook);
+	connect(settingsButton, &QPushButton::clicked, this, &HotkeyDisplayDock::openSettings);
 }
 
 HotkeyDisplayDock::~HotkeyDisplayDock() {}
@@ -57,4 +75,10 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 		}
 	}
 	hookEnabled = !hookEnabled;
+}
+
+void HotkeyDisplayDock::openSettings()
+{
+	StreamupHotkeyDisplaySettings *settingsDialog = new StreamupHotkeyDisplaySettings(this);
+	settingsDialog->show();
 }

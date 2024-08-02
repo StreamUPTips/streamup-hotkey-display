@@ -19,11 +19,14 @@ public:
 
 public slots:
 	void toggleKeyboardHook();
+	void openSettings();
 
 private:
 	QVBoxLayout *layout;
+	QHBoxLayout *buttonLayout;
 	QLabel *label;
 	QPushButton *toggleButton;
+	QPushButton *settingsButton;
 	bool hookEnabled;
 };
 
