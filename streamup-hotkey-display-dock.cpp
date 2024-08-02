@@ -32,8 +32,8 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	toggleButton->setFixedHeight(30);
 
 	// Configure the settings button with icon
-	settingsButton->setMinimumSize(22, 22);
-	settingsButton->setMaximumSize(22, 22);
+	settingsButton->setMinimumSize(26, 22);
+	settingsButton->setMaximumSize(26, 22);
 	settingsButton->setProperty("themeID", "configIconSmall");
 	settingsButton->setIconSize(QSize(20, 20));
 

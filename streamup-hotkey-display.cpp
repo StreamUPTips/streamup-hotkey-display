@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <QMainWindow>
+#include <util/platform.h>
 
 #define QT_UTF8(str) QString::fromUtf8(str)
 #define QT_TO_UTF8(str) str.toUtf8().constData()
@@ -29,6 +30,7 @@ std::unordered_set<int> singleKeys = {VK_INSERT, VK_DELETE, VK_HOME, VK_END, VK_
 std::unordered_set<std::string> loggedCombinations;
 
 HotkeyDisplayDock *hotkeyDisplayDock = nullptr;
+StreamupHotkeyDisplaySettings *settingsDialog = nullptr; // Ensure this is defined
 
 bool isModifierKeyPressed()
 {
@@ -219,6 +221,46 @@ void LoadHotkeyDisplayDock()
 	obs_frontend_pop_ui_translation();
 }
 
+obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving)
+{
+	char *configPath = obs_module_config_path("configs.json");
+	obs_data_t *data = nullptr;
+
+	if (saving) {
+		if (obs_data_save_json(save_data, configPath)) {
+			blog(LOG_INFO, "[StreamUP Hotkey Display] Settings saved to %s", configPath);
+		} else {
+			blog(LOG_WARNING, "[StreamUP Hotkey Display] Failed to save settings to file.");
+		}
+	} else {
+		data = obs_data_create_from_json_file(configPath);
+
+		if (!data) {
+			blog(LOG_INFO, "[StreamUP Hotkey Display] Settings not found. Creating settings file...");
+
+			char *dirPath = obs_module_config_path("");
+			os_mkdirs(dirPath);
+			bfree(dirPath);
+
+			data = obs_data_create();
+
+			if (obs_data_save_json(data, configPath)) {
+				blog(LOG_INFO, "[StreamUP Hotkey Display] Default settings saved to %s", configPath);
+			} else {
+				blog(LOG_WARNING, "[StreamUP Hotkey Display] Failed to save default settings to file.");
+			}
+
+			obs_data_release(data);
+			data = obs_data_create_from_json_file(configPath);
+		} else {
+			blog(LOG_INFO, "[StreamUP Hotkey Display] Settings loaded successfully from %s", configPath);
+		}
+	}
+
+	bfree(configPath);
+	return data;
+}
+
 bool obs_module_load()
 {
 	blog(LOG_INFO, "[StreamUP Hotkey Display] loaded version %s", PROJECT_VERSION);
@@ -231,6 +273,16 @@ bool obs_module_load()
 	if (!keyboardHook) {
 		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
 		return false;
+	}
+
+	// Load settings
+	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
+
+	if (settings) {
+		if (settingsDialog) {
+			settingsDialog->LoadSettings(settings);
+		}
+		obs_data_release(settings);
 	}
 
 	return true;
