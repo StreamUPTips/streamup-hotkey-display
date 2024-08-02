@@ -22,6 +22,9 @@ std::unordered_set<int> activeModifiers;
 std::unordered_set<int> modifierKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK_MENU, VK_LMENU, VK_RMENU,
 					VK_SHIFT,   VK_LSHIFT,   VK_RSHIFT,   VK_LWIN, VK_RWIN};
 
+std::unordered_set<int> singleKeys = {VK_INSERT, VK_DELETE, VK_HOME, VK_END, VK_PRIOR, VK_NEXT, VK_F1,  VK_F2,  VK_F3,
+				      VK_F4,     VK_F5,     VK_F6,   VK_F7,  VK_F8,    VK_F9,   VK_F10, VK_F11, VK_F12};
+
 std::unordered_set<std::string> loggedCombinations;
 
 bool isModifierKeyPressed()
@@ -140,7 +143,9 @@ std::string getCurrentCombination()
 
 bool shouldLogCombination()
 {
-	if (activeModifiers.size() == 0 || (activeModifiers.size() == 1 && activeModifiers.count(VK_SHIFT) > 0)) {
+	// Ignore if only shift is the active modifier
+	if (activeModifiers.size() == 1 &&
+	    (activeModifiers.count(VK_SHIFT) > 0 || activeModifiers.count(VK_LSHIFT) > 0 || activeModifiers.count(VK_RSHIFT) > 0)) {
 		return false;
 	}
 	return true;
@@ -156,7 +161,9 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				activeModifiers.insert(p->vkCode);
 			}
 
-			if (pressedKeys.size() > 1 && isModifierKeyPressed() && shouldLogCombination()) {
+			if ((pressedKeys.size() > 1 && isModifierKeyPressed() && shouldLogCombination()) ||
+			    (singleKeys.count(p->vkCode) && !activeModifiers.count(VK_SHIFT) && !activeModifiers.count(VK_LSHIFT) &&
+			     !activeModifiers.count(VK_RSHIFT))) {
 				std::string keyCombination = getCurrentCombination();
 				if (loggedCombinations.find(keyCombination) == loggedCombinations.end()) {
 					blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
