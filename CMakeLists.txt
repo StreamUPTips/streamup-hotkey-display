@@ -9,12 +9,12 @@ else()
   cmake_minimum_required(VERSION 3.18)
 endif()
 
-project(streamup-record-chapter-manager VERSION 1.1.0)
-set(PROJECT_FULL_NAME "StreamUP Record Chapter Manager")
+project(streamup-hotkey-display VERSION 0.0.1)
+set(PROJECT_FULL_NAME "StreamUP Hotkey Display")
 
 # Set new UUIDs when you start to create a new plugin.
-set(MACOS_PACKAGE_UUID "239143bc-b4bb-46e3-83f4-beb5c6128d59")
-set(MACOS_INSTALLER_UUID "57603eef-17ba-4e89-8481-be4d469aeb16")
+set(MACOS_PACKAGE_UUID "fdb21656-022f-477d-ac1c-2d521e7a9075")
+set(MACOS_INSTALLER_UUID "92c9d120-13ca-422b-9dd7-4101a0eb9b9f")
 
 add_library(${PROJECT_NAME} MODULE)
 
@@ -23,14 +23,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_D
 set(CMAKE_AUTORCC ON)
 
 target_sources(${PROJECT_NAME} PRIVATE
-  streamup-record-chapter-manager.cpp
-  streamup-record-chapter-manager.hpp
-  chapter-marker-dock.cpp
-  chapter-marker-dock.hpp
-  annotation-dock.cpp
-  annotation-dock.hpp
-  obs-websocket-api.h
-  resources.qrc
+  streamup-hotkey-display.cpp
+  streamup-hotkey-display.hpp
   .clang-format
   version.h)
 
