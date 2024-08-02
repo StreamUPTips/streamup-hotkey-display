@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <QMainWindow>
+#include <QDockWidget>
 #include <util/platform.h>
 
 #define QT_UTF8(str) QString::fromUtf8(str)
