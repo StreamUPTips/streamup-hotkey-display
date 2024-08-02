@@ -23,9 +23,7 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(QWidget *parent)
 	timeSpinBox->setSingleStep(1);   // Step of 1
 
 	// Populate sourceComboBox (example, replace with actual source names)
-	sourceComboBox->addItem("Source 1");
-	sourceComboBox->addItem("Source 2");
-	sourceComboBox->addItem("Source 3");
+	PopulateSourceComboBox();
 
 	// Add widgets to layouts
 	sourceLayout->addWidget(sourceLabel);
@@ -80,3 +78,22 @@ void StreamupHotkeyDisplaySettings::applySettings()
 	SaveSettings();
 	accept(); // Close the dialog
 }
+
+void StreamupHotkeyDisplaySettings::PopulateSourceComboBox()
+{
+	sourceComboBox->clear();
+
+	obs_enum_sources(
+		[](void *data, obs_source_t *source) {
+			StreamupHotkeyDisplaySettings *settingsDialog = static_cast<StreamupHotkeyDisplaySettings *>(data);
+			const char *sourceId = obs_source_get_id(source);
+
+			if (strcmp(sourceId, "text_gdiplus") == 0 || strcmp(sourceId, "text_gdiplus_v3") == 0) {
+				const char *sourceName = obs_source_get_name(source);
+				settingsDialog->sourceComboBox->addItem(QString::fromUtf8(sourceName));
+			}
+			return true;
+		},
+		this);
+}
+

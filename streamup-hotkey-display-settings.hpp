@@ -21,6 +21,8 @@ public:
 	void LoadSettings(obs_data_t *settings);
 	void SaveSettings();
 
+	void PopulateSourceComboBox();
+
 	QString textSource;
 	int onScreenTime;
 
