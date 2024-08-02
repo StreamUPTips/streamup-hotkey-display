@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  PLUGIN_NAME: streamup-record-chapter-manager
+  PLUGIN_NAME: streamup-hotkey-display
   OBS_VERSION: 28.0.0-rc1
 
 jobs:
