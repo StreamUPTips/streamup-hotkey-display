@@ -16,7 +16,7 @@ OBS_DECLARE_MODULE()
 OBS_MODULE_AUTHOR("Andilippi")
 OBS_MODULE_USE_DEFAULT_LOCALE("streamup-hotkey-display", "en-US")
 
-HHOOK keyboardHook;
+HHOOK keyboardHook; // Define the keyboard hook
 std::unordered_set<int> pressedKeys;
 std::unordered_set<int> activeModifiers;
 std::unordered_set<int> modifierKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK_MENU, VK_LMENU, VK_RMENU,
@@ -183,6 +183,9 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 			if (!isModifierKeyPressed()) {
 				loggedCombinations.clear(); // Clear logged combinations when no modifiers are held
+				if (hotkeyDisplayDock) {
+					hotkeyDisplayDock->setLog("");
+				}
 			}
 		}
 	}
@@ -238,6 +241,12 @@ void obs_module_unload()
 	if (keyboardHook) {
 		UnhookWindowsHookEx(keyboardHook);
 		keyboardHook = NULL;
+	}
+
+	// Properly clean up the hotkey display dock
+	if (hotkeyDisplayDock) {
+		delete hotkeyDisplayDock;
+		hotkeyDisplayDock = nullptr;
 	}
 }
 
