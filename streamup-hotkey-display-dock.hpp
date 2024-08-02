@@ -28,6 +28,9 @@ private:
 	QPushButton *toggleButton;
 	QPushButton *settingsButton;
 	bool hookEnabled;
+	QString textSource; // Add this line to store the selected text source
+
+	void updateTextSource(const QString &text); // Add this line for the method to update text source
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_DOCK_HPP

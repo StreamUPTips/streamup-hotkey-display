@@ -59,6 +59,7 @@ HotkeyDisplayDock::~HotkeyDisplayDock() {}
 void HotkeyDisplayDock::setLog(const QString &log)
 {
 	label->setText(log);
+	updateTextSource(log); // Update the text source with the log
 }
 
 void HotkeyDisplayDock::toggleKeyboardHook()
@@ -104,9 +105,24 @@ void HotkeyDisplayDock::openSettings()
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
 	if (settings) {
 		settingsDialog->LoadSettings(settings);
+		textSource = settingsDialog->textSource; // Update the text source
 		obs_data_release(settings);
 	}
 
 	settingsDialog->exec();
 	delete settingsDialog;
+}
+
+void HotkeyDisplayDock::updateTextSource(const QString &text)
+{
+	if (!textSource.isEmpty()) {
+		obs_source_t *source = obs_get_source_by_name(textSource.toUtf8().constData());
+		if (source) {
+			obs_data_t *settings = obs_source_get_settings(source);
+			obs_data_set_string(settings, "text", text.toUtf8().constData());
+			obs_source_update(source, settings);
+			obs_data_release(settings);
+			obs_source_release(source);
+		}
+	}
 }
