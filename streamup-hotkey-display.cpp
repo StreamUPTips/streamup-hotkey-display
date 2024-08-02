@@ -1,19 +1,19 @@
-#include "streamup-hotkey-display.hpp"
+#include "streamup-hotkey-display-dock.hpp"
 #include "version.h"
-#include <obs.h>
-#include <obs-data.h>
 #include <obs-module.h>
-#include <util/platform.h>
+#include <obs-frontend-api.h>
+#include <obs.h>
 #include <windows.h>
 #include <unordered_set>
 #include <string>
 #include <vector>
+#include <QMainWindow>
 
 #define QT_UTF8(str) QString::fromUtf8(str)
 #define QT_TO_UTF8(str) str.toUtf8().constData()
 
 OBS_DECLARE_MODULE()
-OBS_MODULE_AUTHOR("Andilippi");
+OBS_MODULE_AUTHOR("Andilippi")
 OBS_MODULE_USE_DEFAULT_LOCALE("streamup-hotkey-display", "en-US")
 
 HHOOK keyboardHook;
@@ -26,6 +26,8 @@ std::unordered_set<int> singleKeys = {VK_INSERT, VK_DELETE, VK_HOME, VK_END, VK_
 				      VK_F4,     VK_F5,     VK_F6,   VK_F7,  VK_F8,    VK_F9,   VK_F10, VK_F11, VK_F12};
 
 std::unordered_set<std::string> loggedCombinations;
+
+HotkeyDisplayDock *hotkeyDisplayDock = nullptr;
 
 bool isModifierKeyPressed()
 {
@@ -167,6 +169,9 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				std::string keyCombination = getCurrentCombination();
 				if (loggedCombinations.find(keyCombination) == loggedCombinations.end()) {
 					blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
+					if (hotkeyDisplayDock) {
+						hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
+					}
 					loggedCombinations.insert(keyCombination);
 				}
 			}
@@ -184,9 +189,38 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
 }
 
+void LoadHotkeyDisplayDock()
+{
+	const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	obs_frontend_push_ui_translation(obs_module_get_string);
+
+	hotkeyDisplayDock = new HotkeyDisplayDock(main_window);
+
+	const QString title = QString::fromUtf8(obs_module_text("Hotkey Display Dock"));
+	const auto name = "HotkeyDisplayDock";
+
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_add_dock_by_id(name, title.toUtf8().constData(), hotkeyDisplayDock);
+#else
+	auto dock = new QDockWidget(main_window);
+	dock->setObjectName(name);
+	dock->setWindowTitle(title);
+	dock->setWidget(hotkeyDisplayDock);
+	dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+	dock->setFloating(true);
+	dock->hide();
+	obs_frontend_add_dock(dock);
+#endif
+
+	obs_frontend_pop_ui_translation();
+}
+
 bool obs_module_load()
 {
 	blog(LOG_INFO, "[StreamUP Hotkey Display] loaded version %s", PROJECT_VERSION);
+
+	// Load the hotkey display dock
+	LoadHotkeyDisplayDock();
 
 	// Set the keyboard hook
 	keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);

@@ -25,6 +25,8 @@ set(CMAKE_AUTORCC ON)
 target_sources(${PROJECT_NAME} PRIVATE
   streamup-hotkey-display.cpp
   streamup-hotkey-display.hpp
+  streamup-hotkey-display-dock.cpp
+  streamup-hotkey-display-dock.hpp
   .clang-format
   version.h)
 
