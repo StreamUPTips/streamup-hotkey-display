@@ -5,7 +5,11 @@
 
 #include <QDialog>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QPushButton>
+#include <QComboBox>
+#include <QSpinBox>
+#include <QLabel>
 #include <obs-frontend-api.h>
 
 class StreamupHotkeyDisplaySettings : public QDialog {
@@ -21,8 +25,19 @@ public:
 	int onScreenTime;
 
 private:
-	QVBoxLayout *layout;
+	QVBoxLayout *mainLayout;
+	QHBoxLayout *buttonLayout;
+	QHBoxLayout *sourceLayout;
+	QHBoxLayout *timeLayout;
+	QLabel *sourceLabel;
+	QLabel *timeLabel;
+	QComboBox *sourceComboBox;
+	QSpinBox *timeSpinBox;
+	QPushButton *applyButton;
 	QPushButton *closeButton;
+
+private slots:
+	void applySettings();
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_SETTINGS_HPP

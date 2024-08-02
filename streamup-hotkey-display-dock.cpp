@@ -4,6 +4,9 @@
 #include <obs.h>
 #include <QIcon>
 
+// Ensure that SaveLoadSettingsCallback is declared
+extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
+
 extern HHOOK keyboardHook;                                                     // Declare the external keyboard hook variable
 extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam); // Declare the external keyboard procedure
 
@@ -96,5 +99,14 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 void HotkeyDisplayDock::openSettings()
 {
 	StreamupHotkeyDisplaySettings *settingsDialog = new StreamupHotkeyDisplaySettings(this);
-	settingsDialog->show();
+
+	// Load current settings
+	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
+	if (settings) {
+		settingsDialog->LoadSettings(settings);
+		obs_data_release(settings);
+	}
+
+	settingsDialog->exec();
+	delete settingsDialog;
 }
