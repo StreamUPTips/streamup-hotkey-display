@@ -32,8 +32,8 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	toggleButton->setFixedHeight(30);
 
 	// Configure the settings button with icon
-	settingsButton->setMinimumSize(26, 22);
-	settingsButton->setMaximumSize(26, 22);
+	settingsButton->setMinimumSize(22, 22);
+	settingsButton->setMaximumSize(22, 22);
 	settingsButton->setProperty("themeID", "configIconSmall");
 	settingsButton->setIconSize(QSize(20, 20));
 
@@ -66,12 +66,28 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 			keyboardHook = NULL;
 		}
 		toggleButton->setText("Enable Hook");
+		label->setStyleSheet("QLabel {"
+				     "  border: 2px solid #888888;" // Grey border for disabled state
+				     "  padding: 10px;"
+				     "  border-radius: 10px;"
+				     "  font-size: 18px;"
+				     "  color: #FFFFFF;"
+				     "  background-color: #333333;"
+				     "}");
 	} else {
 		keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
 		if (!keyboardHook) {
 			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
 		} else {
 			toggleButton->setText("Disable Hook");
+			label->setStyleSheet("QLabel {"
+					     "  border: 2px solid #4CAF50;" // Green border for enabled state
+					     "  padding: 10px;"
+					     "  border-radius: 10px;"
+					     "  font-size: 18px;"
+					     "  color: #FFFFFF;"
+					     "  background-color: #333333;"
+					     "}");
 		}
 	}
 	hookEnabled = !hookEnabled;
