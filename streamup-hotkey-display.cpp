@@ -187,10 +187,6 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 			if (!isModifierKeyPressed()) {
 				loggedCombinations.clear(); // Clear logged combinations when no modifiers are held
-							    // Remove the immediate clearing of the display
-							    // if (hotkeyDisplayDock) {
-							    // 	hotkeyDisplayDock->setLog("");
-							    // }
 			}
 		}
 	}
@@ -281,8 +277,10 @@ bool obs_module_load()
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
 
 	if (settings) {
-		if (settingsDialog) {
-			settingsDialog->LoadSettings(settings);
+		if (hotkeyDisplayDock) {
+			hotkeyDisplayDock->sceneName = QString::fromUtf8(obs_data_get_string(settings, "sceneName"));
+			hotkeyDisplayDock->textSource = QString::fromUtf8(obs_data_get_string(settings, "textSource"));
+			hotkeyDisplayDock->onScreenTime = obs_data_get_int(settings, "onScreenTime");
 		}
 		obs_data_release(settings);
 	}

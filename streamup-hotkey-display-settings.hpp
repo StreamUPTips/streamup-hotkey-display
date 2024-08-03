@@ -21,18 +21,23 @@ public:
 	void LoadSettings(obs_data_t *settings);
 	void SaveSettings();
 
-	void PopulateSourceComboBox();
+	void PopulateSceneComboBox();
+	void PopulateSourceComboBox(const QString &sceneName);
 
+	QString sceneName;
 	QString textSource;
 	int onScreenTime;
 
 private:
 	QVBoxLayout *mainLayout;
 	QHBoxLayout *buttonLayout;
+	QHBoxLayout *sceneLayout;
 	QHBoxLayout *sourceLayout;
 	QHBoxLayout *timeLayout;
+	QLabel *sceneLabel;
 	QLabel *sourceLabel;
 	QLabel *timeLabel;
+	QComboBox *sceneComboBox;
 	QComboBox *sourceComboBox;
 	QSpinBox *timeSpinBox;
 	QPushButton *applyButton;
@@ -40,6 +45,7 @@ private:
 
 private slots:
 	void applySettings();
+	void onSceneChanged(const QString &sceneName);
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_SETTINGS_HPP

@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QTimer>
+#include <obs.h>
 
 class HotkeyDisplayDock : public QFrame {
 	Q_OBJECT
@@ -23,6 +24,11 @@ public slots:
 	void openSettings();
 	void clearDisplay();
 
+public: // Make these variables public
+	QString sceneName;
+	QString textSource;
+	int onScreenTime;
+
 private:
 	QVBoxLayout *layout;
 	QHBoxLayout *buttonLayout;
@@ -30,11 +36,11 @@ private:
 	QPushButton *toggleButton;
 	QPushButton *settingsButton;
 	bool hookEnabled;
-	QString textSource;
 	QTimer *clearTimer;
-	int onScreenTime;
 
 	void updateTextSource(const QString &text);
+	void showSource();
+	void hideSource();
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_DOCK_HPP
