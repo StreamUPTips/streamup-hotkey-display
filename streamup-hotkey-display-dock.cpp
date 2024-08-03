@@ -7,17 +7,19 @@
 // Ensure that SaveLoadSettingsCallback is declared
 extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
 
-extern HHOOK keyboardHook;                                                     // Declare the external keyboard hook variable
-extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam); // Declare the external keyboard procedure
+extern HHOOK keyboardHook;
+extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 
 HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	: QFrame(parent),
 	  layout(new QVBoxLayout(this)),
-	  buttonLayout(new QHBoxLayout()), // Add a horizontal layout for the buttons
+	  buttonLayout(new QHBoxLayout()),
 	  label(new QLabel(this)),
 	  toggleButton(new QPushButton("Disable Hook", this)),
 	  settingsButton(new QPushButton(this)),
-	  hookEnabled(true)
+	  hookEnabled(true),
+	  clearTimer(new QTimer(this)),
+	  onScreenTime(2000) // Default value, adjust as needed
 {
 	label->setAlignment(Qt::AlignCenter);
 	label->setStyleSheet("QLabel {"
@@ -52,6 +54,9 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	// Connect the buttons to their slots
 	connect(toggleButton, &QPushButton::clicked, this, &HotkeyDisplayDock::toggleKeyboardHook);
 	connect(settingsButton, &QPushButton::clicked, this, &HotkeyDisplayDock::openSettings);
+
+	// Connect the timer's timeout signal to the clearDisplay slot
+	connect(clearTimer, &QTimer::timeout, this, &HotkeyDisplayDock::clearDisplay);
 }
 
 HotkeyDisplayDock::~HotkeyDisplayDock() {}
@@ -59,8 +64,12 @@ HotkeyDisplayDock::~HotkeyDisplayDock() {}
 void HotkeyDisplayDock::setLog(const QString &log)
 {
 	label->setText(log);
-	updateTextSource(log); // Update the text source with the log
+	updateTextSource(log);
+
+	// Restart the timer with the on-screen time value
+	clearTimer->start(onScreenTime);
 }
+
 
 void HotkeyDisplayDock::toggleKeyboardHook()
 {
@@ -71,7 +80,7 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 		}
 		toggleButton->setText("Enable Hook");
 		label->setStyleSheet("QLabel {"
-				     "  border: 2px solid #888888;" // Grey border for disabled state
+				     "  border: 2px solid #888888;"
 				     "  padding: 10px;"
 				     "  border-radius: 10px;"
 				     "  font-size: 18px;"
@@ -85,7 +94,7 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 		} else {
 			toggleButton->setText("Disable Hook");
 			label->setStyleSheet("QLabel {"
-					     "  border: 2px solid #4CAF50;" // Green border for enabled state
+					     "  border: 2px solid #4CAF50;"
 					     "  padding: 10px;"
 					     "  border-radius: 10px;"
 					     "  font-size: 18px;"
@@ -105,12 +114,19 @@ void HotkeyDisplayDock::openSettings()
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
 	if (settings) {
 		settingsDialog->LoadSettings(settings);
-		textSource = settingsDialog->textSource; // Update the text source
+		textSource = settingsDialog->textSource;
+		onScreenTime = settingsDialog->onScreenTime; // Ensure this line updates onScreenTime
 		obs_data_release(settings);
 	}
 
 	settingsDialog->exec();
 	delete settingsDialog;
+}
+
+void HotkeyDisplayDock::clearDisplay()
+{
+	label->clear();
+	updateTextSource("");
 }
 
 void HotkeyDisplayDock::updateTextSource(const QString &text)

@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QTimer>
 
 class HotkeyDisplayDock : public QFrame {
 	Q_OBJECT
@@ -20,6 +21,7 @@ public:
 public slots:
 	void toggleKeyboardHook();
 	void openSettings();
+	void clearDisplay();
 
 private:
 	QVBoxLayout *layout;
@@ -28,9 +30,11 @@ private:
 	QPushButton *toggleButton;
 	QPushButton *settingsButton;
 	bool hookEnabled;
-	QString textSource; // Add this line to store the selected text source
+	QString textSource;
+	QTimer *clearTimer;
+	int onScreenTime;
 
-	void updateTextSource(const QString &text); // Add this line for the method to update text source
+	void updateTextSource(const QString &text);
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_DOCK_HPP

@@ -187,9 +187,10 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 			if (!isModifierKeyPressed()) {
 				loggedCombinations.clear(); // Clear logged combinations when no modifiers are held
-				if (hotkeyDisplayDock) {
-					hotkeyDisplayDock->setLog("");
-				}
+							    // Remove the immediate clearing of the display
+							    // if (hotkeyDisplayDock) {
+							    // 	hotkeyDisplayDock->setLog("");
+							    // }
 			}
 		}
 	}
