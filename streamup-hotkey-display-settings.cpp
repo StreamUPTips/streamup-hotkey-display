@@ -1,27 +1,33 @@
 #include "streamup-hotkey-display-settings.hpp"
-#include <obs-frontend-api.h>
 
 extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
 
-StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(QWidget *parent)
+StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *dock, QWidget *parent)
 	: QDialog(parent),
+	  hotkeyDisplayDock(dock),
 	  mainLayout(new QVBoxLayout(this)),
 	  buttonLayout(new QHBoxLayout()),
 	  sceneLayout(new QHBoxLayout()),
 	  sourceLayout(new QHBoxLayout()),
 	  timeLayout(new QHBoxLayout()),
+	  prefixLayout(new QHBoxLayout()),
+	  suffixLayout(new QHBoxLayout()),
 	  sceneLabel(new QLabel("Scene:", this)),
 	  sourceLabel(new QLabel("Text Source:", this)),
 	  timeLabel(new QLabel("On Screen Time (ms):", this)),
+	  prefixLabel(new QLabel("Prefix:", this)),
+	  suffixLabel(new QLabel("Suffix:", this)),
 	  sceneComboBox(new QComboBox(this)),
 	  sourceComboBox(new QComboBox(this)),
 	  timeSpinBox(new QSpinBox(this)),
+	  prefixLineEdit(new QLineEdit(this)),
+	  suffixLineEdit(new QLineEdit(this)),
 	  applyButton(new QPushButton("Apply", this)),
 	  closeButton(new QPushButton("Close", this))
 {
 	setWindowTitle("Hotkey Display Settings");
 
-	setMinimumSize(300, 220);
+	setMinimumSize(300, 260); // Increase minimum size
 
 	// Configure timeSpinBox
 	timeSpinBox->setRange(0, 10000); // Range from 0ms to 10 seconds
@@ -40,12 +46,20 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(QWidget *parent)
 	timeLayout->addWidget(timeLabel);
 	timeLayout->addWidget(timeSpinBox);
 
+	prefixLayout->addWidget(prefixLabel);
+	prefixLayout->addWidget(prefixLineEdit);
+
+	suffixLayout->addWidget(suffixLabel);
+	suffixLayout->addWidget(suffixLineEdit);
+
 	buttonLayout->addWidget(applyButton);
 	buttonLayout->addWidget(closeButton);
 
 	mainLayout->addLayout(sceneLayout);
 	mainLayout->addLayout(sourceLayout);
 	mainLayout->addLayout(timeLayout);
+	mainLayout->addLayout(prefixLayout);
+	mainLayout->addLayout(suffixLayout);
 	mainLayout->addLayout(buttonLayout);
 	setLayout(mainLayout);
 
@@ -57,37 +71,36 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(QWidget *parent)
 
 void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
 {
-	// Scene selection
+	// Existing settings
 	sceneName = QString::fromUtf8(obs_data_get_string(settings, "sceneName"));
 	sceneComboBox->setCurrentText(sceneName);
-
-	// Populate source combo box based on the selected scene
 	PopulateSourceComboBox(sceneName);
-
-	// Text source selection
 	textSource = QString::fromUtf8(obs_data_get_string(settings, "textSource"));
 	sourceComboBox->setCurrentText(textSource);
-
-	// On screen time
 	onScreenTime = obs_data_get_int(settings, "onScreenTime");
 	timeSpinBox->setValue(onScreenTime);
+
+	// New settings
+	QString prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
+	prefixLineEdit->setText(prefix);
+	QString suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
+	suffixLineEdit->setText(suffix);
 }
 
 void StreamupHotkeyDisplaySettings::SaveSettings()
 {
 	obs_data_t *settings = obs_data_create();
 
-	// Scene selection
+	// Existing settings
 	obs_data_set_string(settings, "sceneName", sceneComboBox->currentText().toUtf8().constData());
-
-	// Text source selection
 	obs_data_set_string(settings, "textSource", sourceComboBox->currentText().toUtf8().constData());
-
-	// On screen time
 	obs_data_set_int(settings, "onScreenTime", timeSpinBox->value());
 
-	SaveLoadSettingsCallback(settings, true);
+	// New settings
+	obs_data_set_string(settings, "prefix", prefixLineEdit->text().toUtf8().constData());
+	obs_data_set_string(settings, "suffix", suffixLineEdit->text().toUtf8().constData());
 
+	SaveLoadSettingsCallback(settings, true);
 	obs_data_release(settings);
 }
 
@@ -96,7 +109,19 @@ void StreamupHotkeyDisplaySettings::applySettings()
 	sceneName = sceneComboBox->currentText();
 	textSource = sourceComboBox->currentText();
 	onScreenTime = timeSpinBox->value();
+	QString newPrefix = prefixLineEdit->text();
+	QString newSuffix = suffixLineEdit->text();
+
 	SaveSettings();
+
+	if (hotkeyDisplayDock) {
+		hotkeyDisplayDock->sceneName = sceneName;
+		hotkeyDisplayDock->textSource = textSource;
+		hotkeyDisplayDock->onScreenTime = onScreenTime;
+		hotkeyDisplayDock->prefix = newPrefix;
+		hotkeyDisplayDock->suffix = newSuffix;
+	}
+
 	accept(); // Close the dialog
 }
 

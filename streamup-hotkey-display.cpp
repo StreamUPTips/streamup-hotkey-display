@@ -281,6 +281,8 @@ bool obs_module_load()
 			hotkeyDisplayDock->sceneName = QString::fromUtf8(obs_data_get_string(settings, "sceneName"));
 			hotkeyDisplayDock->textSource = QString::fromUtf8(obs_data_get_string(settings, "textSource"));
 			hotkeyDisplayDock->onScreenTime = obs_data_get_int(settings, "onScreenTime");
+			hotkeyDisplayDock->prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
+			hotkeyDisplayDock->suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 		}
 		obs_data_release(settings);
 	}

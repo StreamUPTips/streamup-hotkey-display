@@ -10,14 +10,15 @@
 #include <QComboBox>
 #include <QSpinBox>
 #include <QLabel>
+#include <QLineEdit>
 #include <obs-frontend-api.h>
+#include <streamup-hotkey-display-dock.hpp>
 
 class StreamupHotkeyDisplaySettings : public QDialog {
 	Q_OBJECT
 
 public:
-	StreamupHotkeyDisplaySettings(QWidget *parent = nullptr);
-
+	StreamupHotkeyDisplaySettings(HotkeyDisplayDock *dock, QWidget *parent);
 	void LoadSettings(obs_data_t *settings);
 	void SaveSettings();
 
@@ -29,11 +30,18 @@ public:
 	int onScreenTime;
 
 private:
+	HotkeyDisplayDock *hotkeyDisplayDock;
 	QVBoxLayout *mainLayout;
 	QHBoxLayout *buttonLayout;
 	QHBoxLayout *sceneLayout;
 	QHBoxLayout *sourceLayout;
 	QHBoxLayout *timeLayout;
+	QHBoxLayout *prefixLayout;
+	QHBoxLayout *suffixLayout;
+	QLabel *prefixLabel;
+	QLabel *suffixLabel;
+	QLineEdit *prefixLineEdit;
+	QLineEdit *suffixLineEdit;
 	QLabel *sceneLabel;
 	QLabel *sourceLabel;
 	QLabel *timeLabel;

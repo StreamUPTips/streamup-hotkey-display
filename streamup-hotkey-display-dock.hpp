@@ -24,10 +24,12 @@ public slots:
 	void openSettings();
 	void clearDisplay();
 
-public: // Make these variables public
+public: 
 	QString sceneName;
 	QString textSource;
 	int onScreenTime;
+	QString prefix;
+	QString suffix;
 
 private:
 	QVBoxLayout *layout;
@@ -37,7 +39,6 @@ private:
 	QPushButton *settingsButton;
 	bool hookEnabled;
 	QTimer *clearTimer;
-
 	void updateTextSource(const QString &text);
 	void showSource();
 	void hideSource();

@@ -63,6 +63,8 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 		sceneName = QString::fromUtf8(obs_data_get_string(settings, "sceneName"));
 		textSource = QString::fromUtf8(obs_data_get_string(settings, "textSource"));
 		onScreenTime = obs_data_get_int(settings, "onScreenTime");
+		prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
+		suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 		obs_data_release(settings);
 	}
 }
@@ -121,7 +123,7 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 
 void HotkeyDisplayDock::openSettings()
 {
-	StreamupHotkeyDisplaySettings *settingsDialog = new StreamupHotkeyDisplaySettings(this);
+	StreamupHotkeyDisplaySettings *settingsDialog = new StreamupHotkeyDisplaySettings(this, this);
 
 	// Load current settings
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
@@ -137,6 +139,8 @@ void HotkeyDisplayDock::openSettings()
 			sceneName = QString::fromUtf8(obs_data_get_string(settings, "sceneName"));
 			textSource = QString::fromUtf8(obs_data_get_string(settings, "textSource"));
 			onScreenTime = obs_data_get_int(settings, "onScreenTime");
+			prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
+			suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 			obs_data_release(settings);
 		}
 	}
@@ -156,7 +160,8 @@ void HotkeyDisplayDock::updateTextSource(const QString &text)
 		obs_source_t *source = obs_get_source_by_name(textSource.toUtf8().constData());
 		if (source) {
 			obs_data_t *settings = obs_source_get_settings(source);
-			obs_data_set_string(settings, "text", text.toUtf8().constData());
+			QString formattedText = prefix + text + suffix;
+			obs_data_set_string(settings, "text", formattedText.toUtf8().constData());
 			obs_source_update(source, settings);
 			obs_data_release(settings);
 			obs_source_release(source);
