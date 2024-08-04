@@ -30,8 +30,8 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	setMinimumSize(300, 260); // Increase minimum size
 
 	// Configure timeSpinBox
-	timeSpinBox->setRange(0, 10000); // Range from 0ms to 10 seconds
-	timeSpinBox->setSingleStep(1);   // Step of 1
+	timeSpinBox->setRange(100, 10000); 
+	timeSpinBox->setSingleStep(1);   
 
 	// Populate sceneComboBox
 	PopulateSceneComboBox();
