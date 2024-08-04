@@ -12,7 +12,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <obs-frontend-api.h>
-#include <streamup-hotkey-display-dock.hpp>
+#include "streamup-hotkey-display-dock.hpp"
 
 class StreamupHotkeyDisplaySettings : public QDialog {
 	Q_OBJECT
