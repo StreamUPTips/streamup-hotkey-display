@@ -97,7 +97,10 @@ HotkeyDisplayDock::~HotkeyDisplayDock() {}
 void HotkeyDisplayDock::setLog(const QString &log)
 {
 	label->setText(log);
-	updateTextSource(log);
+
+	if (textSource != "No text source available") {
+		updateTextSource(log);
+	}
 
 	// Show the source when text is set
 	showSource();
@@ -191,9 +194,8 @@ void HotkeyDisplayDock::clearDisplay()
 
 void HotkeyDisplayDock::updateTextSource(const QString &text)
 {
-	if (sceneName == "Select Scene" || textSource.isEmpty()) {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene or text source is not selected. Skipping update.");
-		return;
+	if (sceneName == "Select Scene" || textSource.isEmpty() || textSource == "No text source available") {
+		return; // Skip updating if the scene or text source is not valid
 	}
 
 	if (sceneAndSourceExist() && !textSource.isEmpty()) {
@@ -215,8 +217,9 @@ void HotkeyDisplayDock::updateTextSource(const QString &text)
 
 void HotkeyDisplayDock::showSource()
 {
-	if (sceneName == "Select Scene" || textSource.isEmpty()) {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene or text source is not selected. Skipping show source.");
+	if (sceneName == "Select Scene" || textSource.isEmpty() || textSource == "No text source available") {
+		blog(LOG_WARNING,
+		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping show source.");
 		return;
 	}
 
@@ -242,8 +245,9 @@ void HotkeyDisplayDock::showSource()
 
 void HotkeyDisplayDock::hideSource()
 {
-	if (sceneName == "Select Scene" || textSource.isEmpty()) {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene or text source is not selected. Skipping hide source.");
+	if (sceneName == "Select Scene" || textSource.isEmpty() || textSource == "No text source available") {
+		blog(LOG_WARNING,
+		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping hide source.");
 		return;
 	}
 
