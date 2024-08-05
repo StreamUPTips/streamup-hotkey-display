@@ -191,6 +191,11 @@ void HotkeyDisplayDock::clearDisplay()
 
 void HotkeyDisplayDock::updateTextSource(const QString &text)
 {
+	if (sceneName == "Select Scene" || textSource.isEmpty()) {
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene or text source is not selected. Skipping update.");
+		return;
+	}
+
 	if (sceneAndSourceExist() && !textSource.isEmpty()) {
 		obs_source_t *source = obs_get_source_by_name(textSource.toUtf8().constData());
 		if (source) {
@@ -210,6 +215,11 @@ void HotkeyDisplayDock::updateTextSource(const QString &text)
 
 void HotkeyDisplayDock::showSource()
 {
+	if (sceneName == "Select Scene" || textSource.isEmpty()) {
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene or text source is not selected. Skipping show source.");
+		return;
+	}
+
 	if (sceneAndSourceExist()) {
 		obs_source_t *scene = obs_get_source_by_name(sceneName.toUtf8().constData());
 		if (scene) {
@@ -232,6 +242,11 @@ void HotkeyDisplayDock::showSource()
 
 void HotkeyDisplayDock::hideSource()
 {
+	if (sceneName == "Select Scene" || textSource.isEmpty()) {
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene or text source is not selected. Skipping hide source.");
+		return;
+	}
+
 	if (sceneAndSourceExist()) {
 		obs_source_t *scene = obs_get_source_by_name(sceneName.toUtf8().constData());
 		if (scene) {

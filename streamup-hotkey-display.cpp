@@ -11,6 +11,7 @@
 #include <QMainWindow>
 #include <QDockWidget>
 #include <util/platform.h>
+#include "obs-websocket-api.h"
 
 #define QT_UTF8(str) QString::fromUtf8(str)
 #define QT_TO_UTF8(str) str.toUtf8().constData()
@@ -32,6 +33,7 @@ std::unordered_set<std::string> loggedCombinations;
 
 HotkeyDisplayDock *hotkeyDisplayDock = nullptr;
 StreamupHotkeyDisplaySettings *settingsDialog = nullptr; // Ensure this is defined
+obs_websocket_vendor websocket_vendor = nullptr;         // Declare a vendor handle
 
 bool isModifierKeyPressed()
 {
@@ -177,6 +179,12 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 						hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
 					}
 					loggedCombinations.insert(keyCombination);
+
+					// Emit the WebSocket event
+					obs_data_t *event_data = obs_data_create();
+					obs_data_set_string(event_data, "key_combination", keyCombination.c_str());
+					obs_websocket_vendor_emit_event(websocket_vendor, "key_pressed", event_data);
+					obs_data_release(event_data);
 				}
 			}
 		} else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
@@ -186,7 +194,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			}
 
 			if (!isModifierKeyPressed()) {
-				loggedCombinations.clear(); // Clear logged combinations when no modifiers are held
+				loggedCombinations.clear();
 			}
 		}
 	}
@@ -263,6 +271,13 @@ bool obs_module_load()
 {
 	blog(LOG_INFO, "[StreamUP Hotkey Display] loaded version %s", PROJECT_VERSION);
 
+	// Initialize the WebSocket vendor
+	websocket_vendor = obs_websocket_register_vendor("streamup-hotkey-display");
+	if (!websocket_vendor) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to register websocket vendor!");
+		return false;
+	}
+
 	// Load the hotkey display dock
 	LoadHotkeyDisplayDock();
 
@@ -321,6 +336,12 @@ void obs_module_unload()
 	if (keyboardHook) {
 		UnhookWindowsHookEx(keyboardHook);
 		keyboardHook = NULL;
+	}
+
+	// Unregister the WebSocket vendor
+	if (websocket_vendor) {
+		obs_websocket_vendor_unregister_request(websocket_vendor, "streamup_hotkey_display");
+		websocket_vendor = nullptr;
 	}
 }
 

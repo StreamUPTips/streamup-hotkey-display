@@ -29,6 +29,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   streamup-hotkey-display-dock.hpp
   streamup-hotkey-display-settings.cpp
   streamup-hotkey-display-settings.hpp
+  obs-websocket-api.h
   .clang-format
   version.h)
 
