@@ -266,9 +266,6 @@ bool obs_module_load()
 	// Load the hotkey display dock
 	LoadHotkeyDisplayDock();
 
-	// Do not set the keyboard hook initially
-	keyboardHook = NULL;
-
 	// Load settings
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
 
@@ -279,6 +276,38 @@ bool obs_module_load()
 			hotkeyDisplayDock->onScreenTime = obs_data_get_int(settings, "onScreenTime");
 			hotkeyDisplayDock->prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 			hotkeyDisplayDock->suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
+
+			// Initialize hookEnabled from settings
+			bool hookEnabled = obs_data_get_bool(settings, "hookEnabled");
+			hotkeyDisplayDock->setHookEnabled(hookEnabled);
+
+			// Set the initial state of the hook and UI
+			if (hookEnabled) {
+				keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
+				if (!keyboardHook) {
+					blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
+					hotkeyDisplayDock->setHookEnabled(false);
+				}
+				hotkeyDisplayDock->getToggleButton()->setText("Disable Hook");
+				hotkeyDisplayDock->getLabel()->setStyleSheet("QLabel {"
+									     "  border: 2px solid #4CAF50;"
+									     "  padding: 10px;"
+									     "  border-radius: 10px;"
+									     "  font-size: 18px;"
+									     "  color: #FFFFFF;"
+									     "  background-color: #333333;"
+									     "}");
+			} else {
+				hotkeyDisplayDock->getToggleButton()->setText("Enable Hook");
+				hotkeyDisplayDock->getLabel()->setStyleSheet("QLabel {"
+									     "  border: 2px solid #888888;"
+									     "  padding: 10px;"
+									     "  border-radius: 10px;"
+									     "  font-size: 18px;"
+									     "  color: #FFFFFF;"
+									     "  background-color: #333333;"
+									     "}");
+			}
 		}
 		obs_data_release(settings);
 	}

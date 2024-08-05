@@ -141,7 +141,17 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 					     "}");
 		}
 	}
+
 	hookEnabled = !hookEnabled;
+
+	// Save the hookEnabled state to settings
+	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
+	if (settings) {
+		obs_data_set_bool(settings, "hookEnabled", hookEnabled);
+		SaveLoadSettingsCallback(settings, true);
+		obs_data_release(settings);
+	}
+
 	blog(LOG_INFO, "[StreamUP Hotkey Display] Hook toggled. New state: %s", hookEnabled ? "Enabled" : "Disabled");
 }
 

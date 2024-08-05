@@ -24,6 +24,11 @@ public slots:
 	void openSettings();
 	void clearDisplay();
 
+	bool isHookEnabled() const { return hookEnabled; }
+	void setHookEnabled(bool enabled) { hookEnabled = enabled; }
+	QPushButton *getToggleButton() const { return toggleButton; }
+	QLabel *getLabel() const { return label; }
+
 public:
 	QString sceneName;
 	QString textSource;
