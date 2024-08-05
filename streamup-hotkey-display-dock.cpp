@@ -79,9 +79,6 @@ void HotkeyDisplayDock::setLog(const QString &log)
 	// Show the source when text is set
 	showSource();
 
-	// Delay for 50ms
-	QThread::msleep(50);
-
 	// Restart the timer with the on-screen time value
 	clearTimer->start(onScreenTime);
 }
@@ -102,6 +99,7 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 				     "  color: #FFFFFF;"
 				     "  background-color: #333333;"
 				     "}");
+		stopAllActivities();
 	} else {
 		keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
 		if (!keyboardHook) {
@@ -152,11 +150,12 @@ void HotkeyDisplayDock::clearDisplay()
 {
 	label->clear();
 	hideSource();
+	resetToListeningState(); // Reset to listening state after clearing the display
 }
 
 void HotkeyDisplayDock::updateTextSource(const QString &text)
 {
-	if (!textSource.isEmpty()) {
+	if (sceneAndSourceExist() && !textSource.isEmpty()) {
 		obs_source_t *source = obs_get_source_by_name(textSource.toUtf8().constData());
 		if (source) {
 			obs_data_t *settings = obs_source_get_settings(source);
@@ -169,13 +168,13 @@ void HotkeyDisplayDock::updateTextSource(const QString &text)
 			blog(LOG_WARNING, "[StreamUP Hotkey Display] Source '%s' not found!", textSource.toUtf8().constData());
 		}
 	} else {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Text source is empty!");
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Text source is empty or does not exist!");
 	}
 }
 
 void HotkeyDisplayDock::showSource()
 {
-	if (!sceneName.isEmpty() && !textSource.isEmpty()) {
+	if (sceneAndSourceExist()) {
 		obs_source_t *scene = obs_get_source_by_name(sceneName.toUtf8().constData());
 		if (scene) {
 			obs_scene_t *sceneAsScene = obs_scene_from_source(scene);
@@ -191,13 +190,13 @@ void HotkeyDisplayDock::showSource()
 			blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene '%s' not found!", sceneName.toUtf8().constData());
 		}
 	} else {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene name or text source is empty!");
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene name or text source is empty or does not exist!");
 	}
 }
 
 void HotkeyDisplayDock::hideSource()
 {
-	if (!sceneName.isEmpty() && !textSource.isEmpty()) {
+	if (sceneAndSourceExist()) {
 		obs_source_t *scene = obs_get_source_by_name(sceneName.toUtf8().constData());
 		if (scene) {
 			obs_scene_t *sceneAsScene = obs_scene_from_source(scene);
@@ -213,6 +212,51 @@ void HotkeyDisplayDock::hideSource()
 			blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene '%s' not found!", sceneName.toUtf8().constData());
 		}
 	} else {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene name or text source is empty!");
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene name or text source is empty or does not exist!");
+	}
+}
+
+bool HotkeyDisplayDock::sceneAndSourceExist()
+{
+	if (sceneName.isEmpty() || textSource.isEmpty()) {
+		return false;
+	}
+
+	obs_source_t *scene = obs_get_source_by_name(sceneName.toUtf8().constData());
+	if (!scene) {
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene '%s' does not exist!", sceneName.toUtf8().constData());
+		return false;
+	}
+
+	obs_scene_t *sceneAsScene = obs_scene_from_source(scene);
+	obs_sceneitem_t *item = obs_scene_find_source(sceneAsScene, textSource.toUtf8().constData());
+	obs_source_release(scene);
+
+	if (!item) {
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Source '%s' does not exist in scene '%s'!",
+		     textSource.toUtf8().constData(), sceneName.toUtf8().constData());
+		return false;
+	}
+
+	return true;
+}
+
+void HotkeyDisplayDock::stopAllActivities()
+{
+	if (clearTimer->isActive()) {
+		clearTimer->stop();
+	}
+	label->clear();
+}
+
+void HotkeyDisplayDock::resetToListeningState()
+{
+	stopAllActivities();
+	// Ensure the hook is enabled to listen for the next key press
+	if (!keyboardHook) {
+		keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
+		if (!keyboardHook) {
+			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
+		}
 	}
 }

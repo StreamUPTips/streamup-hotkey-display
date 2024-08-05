@@ -24,7 +24,7 @@ public slots:
 	void openSettings();
 	void clearDisplay();
 
-public: 
+public:
 	QString sceneName;
 	QString textSource;
 	int onScreenTime;
@@ -42,6 +42,9 @@ private:
 	void updateTextSource(const QString &text);
 	void showSource();
 	void hideSource();
+	bool sceneAndSourceExist();
+	void stopAllActivities();
+	void resetToListeningState();
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_DOCK_HPP
