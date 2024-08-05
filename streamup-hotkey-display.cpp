@@ -266,12 +266,8 @@ bool obs_module_load()
 	// Load the hotkey display dock
 	LoadHotkeyDisplayDock();
 
-	// Set the keyboard hook
-	keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
-	if (!keyboardHook) {
-		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
-		return false;
-	}
+	// Do not set the keyboard hook initially
+	keyboardHook = NULL;
 
 	// Load settings
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);

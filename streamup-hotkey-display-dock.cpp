@@ -14,15 +14,15 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	  layout(new QVBoxLayout(this)),
 	  buttonLayout(new QHBoxLayout()),
 	  label(new QLabel(this)),
-	  toggleButton(new QPushButton("Disable Hook", this)),
+	  toggleButton(new QPushButton("Enable Hook", this)), // Set initial text to "Enable Hook"
 	  settingsButton(new QPushButton(this)),
-	  hookEnabled(true),
+	  hookEnabled(false), // Ensure hook is disabled by default
 	  clearTimer(new QTimer(this)),
-	  onScreenTime(100) // Default value, adjust as needed
+	  onScreenTime(100)
 {
 	label->setAlignment(Qt::AlignCenter);
 	label->setStyleSheet("QLabel {"
-			     "  border: 2px solid #4CAF50;"
+			     "  border: 2px solid #888888;" // Initial border style for disabled state
 			     "  padding: 10px;"
 			     "  border-radius: 10px;"
 			     "  font-size: 18px;"
@@ -67,6 +67,29 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 		suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 		obs_data_release(settings);
 	}
+
+	// Set initial UI state based on hookEnabled
+	if (hookEnabled) {
+		toggleButton->setText("Disable Hook");
+		label->setStyleSheet("QLabel {"
+				     "  border: 2px solid #4CAF50;"
+				     "  padding: 10px;"
+				     "  border-radius: 10px;"
+				     "  font-size: 18px;"
+				     "  color: #FFFFFF;"
+				     "  background-color: #333333;"
+				     "}");
+	} else {
+		toggleButton->setText("Enable Hook");
+		label->setStyleSheet("QLabel {"
+				     "  border: 2px solid #888888;"
+				     "  padding: 10px;"
+				     "  border-radius: 10px;"
+				     "  font-size: 18px;"
+				     "  color: #FFFFFF;"
+				     "  background-color: #333333;"
+				     "}");
+	}
 }
 
 HotkeyDisplayDock::~HotkeyDisplayDock() {}
@@ -85,6 +108,8 @@ void HotkeyDisplayDock::setLog(const QString &log)
 
 void HotkeyDisplayDock::toggleKeyboardHook()
 {
+	blog(LOG_INFO, "[StreamUP Hotkey Display] Toggling hook. Current state: %s", hookEnabled ? "Enabled" : "Disabled");
+
 	if (hookEnabled) {
 		if (keyboardHook) {
 			UnhookWindowsHookEx(keyboardHook);
@@ -117,6 +142,7 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 		}
 	}
 	hookEnabled = !hookEnabled;
+	blog(LOG_INFO, "[StreamUP Hotkey Display] Hook toggled. New state: %s", hookEnabled ? "Enabled" : "Disabled");
 }
 
 void HotkeyDisplayDock::openSettings()
@@ -260,3 +286,4 @@ void HotkeyDisplayDock::resetToListeningState()
 		}
 	}
 }
+
