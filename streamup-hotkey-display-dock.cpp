@@ -14,6 +14,9 @@ extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 #ifdef __APPLE__
 #include <ApplicationServices/ApplicationServices.h>
 #include <Carbon/Carbon.h>
+extern CFMachPortRef eventTap;
+void startMacOSKeyboardHook();
+void stopMacOSKeyboardHook();
 #endif
 
 #ifdef __linux__
@@ -486,3 +489,31 @@ void HotkeyDisplayDock::resetToListeningState()
 	}
 #endif
 }
+
+#ifdef __APPLE__
+CFMachPortRef eventTap = nullptr;
+
+void startMacOSKeyboardHook()
+{
+	eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault,
+				    CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp), CGEventCallback, nullptr);
+
+	if (!eventTap) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+		return;
+	}
+
+	CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+	CGEventTapEnable(eventTap, true);
+	CFRelease(runLoopSource);
+}
+
+void stopMacOSKeyboardHook()
+{
+	if (eventTap) {
+		CFRelease(eventTap);
+		eventTap = nullptr;
+	}
+}
+#endif
