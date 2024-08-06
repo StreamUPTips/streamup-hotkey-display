@@ -183,6 +183,18 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 					// Emit the WebSocket event
 					obs_data_t *event_data = obs_data_create();
 					obs_data_set_string(event_data, "key_combination", keyCombination.c_str());
+
+					// Add all key presses as an array
+					obs_data_array_t *key_presses_array = obs_data_array_create();
+					for (const int &key : pressedKeys) {
+						obs_data_t *key_data = obs_data_create();
+						obs_data_set_string(key_data, "key", getKeyName(key).c_str());
+						obs_data_array_push_back(key_presses_array, key_data);
+						obs_data_release(key_data);
+					}
+					obs_data_set_array(event_data, "key_presses", key_presses_array);
+					obs_data_array_release(key_presses_array);
+
 					obs_websocket_vendor_emit_event(websocket_vendor, "key_pressed", event_data);
 					obs_data_release(event_data);
 				}
