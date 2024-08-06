@@ -24,7 +24,6 @@
 #ifdef __linux__
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#include <X11/extensions/XTest.h>
 #endif
 
 #define QT_UTF8(str) QString::fromUtf8(str)
