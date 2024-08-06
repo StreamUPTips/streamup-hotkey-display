@@ -37,10 +37,6 @@ OBS_MODULE_USE_DEFAULT_LOCALE("streamup-hotkey-display", "en-US")
 HHOOK keyboardHook;
 #endif
 
-#ifdef __APPLE__
-static CFMachPortRef eventTap;
-#endif
-
 #ifdef __linux__
 Display *display;
 #endif
