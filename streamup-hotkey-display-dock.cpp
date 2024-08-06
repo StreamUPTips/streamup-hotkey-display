@@ -17,6 +17,7 @@ extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 extern CFMachPortRef eventTap;
 void startMacOSKeyboardHook();
 void stopMacOSKeyboardHook();
+CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
 #endif
 
 #ifdef __linux__
@@ -25,8 +26,6 @@ void stopMacOSKeyboardHook();
 #endif
 
 extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
-extern HHOOK keyboardHook;
-extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 
 HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	: QFrame(parent),

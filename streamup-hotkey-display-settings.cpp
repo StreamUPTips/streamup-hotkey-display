@@ -175,7 +175,7 @@ void StreamupHotkeyDisplaySettings::PopulateSceneComboBox()
 {
 	sceneComboBox->clear();
 
-	struct obs_frontend_source_list scenes = {{0}};
+	struct obs_frontend_source_list scenes = {{{0}}};
 	obs_frontend_get_scenes(&scenes);
 
 	for (size_t i = 0; i < scenes.sources.num; i++) {
