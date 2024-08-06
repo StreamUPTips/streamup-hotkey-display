@@ -41,13 +41,13 @@ private:
 	QHBoxLayout *timeLayout;
 	QHBoxLayout *prefixLayout;
 	QHBoxLayout *suffixLayout;
+	QLabel *sceneLabel;
+	QLabel *sourceLabel;
+	QLabel *timeLabel;
 	QLabel *prefixLabel;
 	QLabel *suffixLabel;
 	QLineEdit *prefixLineEdit;
 	QLineEdit *suffixLineEdit;
-	QLabel *sceneLabel;
-	QLabel *sourceLabel;
-	QLabel *timeLabel;
 	QComboBox *sceneComboBox;
 	QComboBox *sourceComboBox;
 	QSpinBox *timeSpinBox;

@@ -18,11 +18,11 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	  timeLabel(new QLabel(obs_module_text("OnScreenTimeLabel"), this)),
 	  prefixLabel(new QLabel(obs_module_text("PrefixLabel"), this)),
 	  suffixLabel(new QLabel(obs_module_text("SuffixLabel"), this)),
+	  prefixLineEdit(new QLineEdit(this)),
+	  suffixLineEdit(new QLineEdit(this)),
 	  sceneComboBox(new QComboBox(this)),
 	  sourceComboBox(new QComboBox(this)),
 	  timeSpinBox(new QSpinBox(this)),
-	  prefixLineEdit(new QLineEdit(this)),
-	  suffixLineEdit(new QLineEdit(this)),
 	  applyButton(new QPushButton(obs_module_text("ApplyButton"), this)),
 	  closeButton(new QPushButton(obs_module_text("CloseButton"), this)),
 	  displayInTextSourceCheckBox(new QCheckBox(obs_module_text("DisplayHotkeysInTextSource"), this)),
@@ -175,7 +175,7 @@ void StreamupHotkeyDisplaySettings::PopulateSceneComboBox()
 {
 	sceneComboBox->clear();
 
-	struct obs_frontend_source_list scenes = {0};
+	struct obs_frontend_source_list scenes = {{0}};
 	obs_frontend_get_scenes(&scenes);
 
 	for (size_t i = 0; i < scenes.sources.num; i++) {
@@ -200,7 +200,7 @@ void StreamupHotkeyDisplaySettings::PopulateSourceComboBox(const QString &sceneN
 	obs_scene_t *sceneAsScene = obs_scene_from_source(scene);
 	obs_scene_enum_items(
 		sceneAsScene,
-		[](obs_scene_t *scene, obs_sceneitem_t *item, void *param) {
+		[](obs_scene_t * /*scene*/, obs_sceneitem_t *item, void *param) {
 			StreamupHotkeyDisplaySettings *settingsDialog = static_cast<StreamupHotkeyDisplaySettings *>(param);
 			obs_source_t *source = obs_sceneitem_get_source(item);
 			const char *sourceId = obs_source_get_id(source);
