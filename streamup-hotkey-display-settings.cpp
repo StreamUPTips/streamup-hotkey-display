@@ -23,15 +23,17 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	  prefixLineEdit(new QLineEdit(this)),
 	  suffixLineEdit(new QLineEdit(this)),
 	  applyButton(new QPushButton("Apply", this)),
-	  closeButton(new QPushButton("Close", this))
+	  closeButton(new QPushButton("Close", this)),
+	  displayInTextSourceCheckBox(new QCheckBox("Display Hotkeys in Text Source", this)),
+	  textSourceGroupBox(new QGroupBox("Text Source Settings", this)) // Initialize the group box
 {
 	setWindowTitle("Hotkey Display Settings");
 
-	setMinimumSize(300, 260); // Increase minimum size
+	setMinimumSize(300, 130);
 
 	// Configure timeSpinBox
-	timeSpinBox->setRange(100, 10000); 
-	timeSpinBox->setSingleStep(1);   
+	timeSpinBox->setRange(100, 10000);
+	timeSpinBox->setSingleStep(1);
 
 	// Populate sceneComboBox
 	PopulateSceneComboBox();
@@ -43,23 +45,31 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	sourceLayout->addWidget(sourceLabel);
 	sourceLayout->addWidget(sourceComboBox);
 
-	timeLayout->addWidget(timeLabel);
-	timeLayout->addWidget(timeSpinBox);
-
 	prefixLayout->addWidget(prefixLabel);
 	prefixLayout->addWidget(prefixLineEdit);
 
 	suffixLayout->addWidget(suffixLabel);
 	suffixLayout->addWidget(suffixLineEdit);
 
+	// Create and configure textSourceGroupBox layout
+	QVBoxLayout *textSourceLayout = new QVBoxLayout();
+	textSourceLayout->addLayout(sceneLayout);
+	textSourceLayout->addLayout(sourceLayout);
+	textSourceLayout->addLayout(prefixLayout);
+	textSourceLayout->addLayout(suffixLayout);
+	textSourceGroupBox->setLayout(textSourceLayout);
+
+	// Create and configure time layout
+	QHBoxLayout *timeLayout = new QHBoxLayout();
+	timeLayout->addWidget(timeLabel);
+	timeLayout->addWidget(timeSpinBox);
+
 	buttonLayout->addWidget(applyButton);
 	buttonLayout->addWidget(closeButton);
 
-	mainLayout->addLayout(sceneLayout);
-	mainLayout->addLayout(sourceLayout);
-	mainLayout->addLayout(timeLayout);
-	mainLayout->addLayout(prefixLayout);
-	mainLayout->addLayout(suffixLayout);
+	mainLayout->addWidget(displayInTextSourceCheckBox);
+	mainLayout->addWidget(textSourceGroupBox); // Add the group box to the main layout
+	mainLayout->addLayout(timeLayout);         // Add the time layout to the main layout
 	mainLayout->addLayout(buttonLayout);
 	setLayout(mainLayout);
 
@@ -67,6 +77,15 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	connect(applyButton, &QPushButton::clicked, this, &StreamupHotkeyDisplaySettings::applySettings);
 	connect(closeButton, &QPushButton::clicked, this, &StreamupHotkeyDisplaySettings::close);
 	connect(sceneComboBox, &QComboBox::currentTextChanged, this, &StreamupHotkeyDisplaySettings::onSceneChanged);
+	connect(displayInTextSourceCheckBox, &QCheckBox::toggled, this,
+		&StreamupHotkeyDisplaySettings::onDisplayInTextSourceToggled); // Connect checkbox toggle
+
+	// Load current settings
+	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
+	if (settings) {
+		LoadSettings(settings);
+		obs_data_release(settings);
+	}
 }
 
 void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
@@ -79,12 +98,16 @@ void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
 	sourceComboBox->setCurrentText(textSource);
 	onScreenTime = obs_data_get_int(settings, "onScreenTime");
 	timeSpinBox->setValue(onScreenTime);
+	displayInTextSource = obs_data_get_bool(settings, "displayInTextSource");
+	displayInTextSourceCheckBox->setChecked(displayInTextSource);
 
 	// New settings
 	QString prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 	prefixLineEdit->setText(prefix);
 	QString suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 	suffixLineEdit->setText(suffix);
+
+	onDisplayInTextSourceToggled(displayInTextSource); // Set initial visibility of related settings
 }
 
 void StreamupHotkeyDisplaySettings::SaveSettings()
@@ -95,6 +118,7 @@ void StreamupHotkeyDisplaySettings::SaveSettings()
 	obs_data_set_string(settings, "sceneName", sceneComboBox->currentText().toUtf8().constData());
 	obs_data_set_string(settings, "textSource", sourceComboBox->currentText().toUtf8().constData());
 	obs_data_set_int(settings, "onScreenTime", timeSpinBox->value());
+	obs_data_set_bool(settings, "displayInTextSource", displayInTextSourceCheckBox->isChecked());
 
 	// New settings
 	obs_data_set_string(settings, "prefix", prefixLineEdit->text().toUtf8().constData());
@@ -109,6 +133,7 @@ void StreamupHotkeyDisplaySettings::applySettings()
 	sceneName = sceneComboBox->currentText();
 	textSource = sourceComboBox->currentText();
 	onScreenTime = timeSpinBox->value();
+	displayInTextSource = displayInTextSourceCheckBox->isChecked();
 	QString newPrefix = prefixLineEdit->text();
 	QString newSuffix = suffixLineEdit->text();
 
@@ -120,6 +145,7 @@ void StreamupHotkeyDisplaySettings::applySettings()
 		hotkeyDisplayDock->onScreenTime = onScreenTime;
 		hotkeyDisplayDock->prefix = newPrefix;
 		hotkeyDisplayDock->suffix = newSuffix;
+		hotkeyDisplayDock->setDisplayInTextSource(displayInTextSource); // Apply the setting to the dock
 	}
 
 	accept(); // Close the dialog
@@ -180,4 +206,10 @@ void StreamupHotkeyDisplaySettings::PopulateSourceComboBox(const QString &sceneN
 	if (sourceComboBox->count() == 0) {
 		sourceComboBox->addItem("No text source available");
 	}
+}
+
+void StreamupHotkeyDisplaySettings::onDisplayInTextSourceToggled(bool checked)
+{
+	textSourceGroupBox->setVisible(checked);
+	adjustSize();
 }

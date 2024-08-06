@@ -18,11 +18,12 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	  settingsButton(new QPushButton(this)),
 	  hookEnabled(false),
 	  clearTimer(new QTimer(this)),
-	  sceneName("Default Scene"),        // Ensure a default value
-	  textSource("Default Text Source"), // Ensure a default value
-	  onScreenTime(100),                 // Ensure a default value
-	  prefix(""),                        // Ensure a default value
-	  suffix("")                         // Ensure a default value
+	  sceneName("Default Scene"),
+	  textSource("Default Text Source"),
+	  onScreenTime(500),
+	  prefix(""),
+	  suffix(""),
+	  displayInTextSource(false)
 {
 	label->setAlignment(Qt::AlignCenter);
 	label->setStyleSheet("QLabel {"
@@ -59,15 +60,8 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 		onScreenTime = obs_data_get_int(settings, "onScreenTime");
 		prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 		suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
+		displayInTextSource = obs_data_get_bool(settings, "displayInTextSource");
 		hookEnabled = obs_data_get_bool(settings, "hookEnabled");
-
-		// Ensure sceneName and textSource have valid default values if not set
-		if (sceneName.isEmpty()) {
-			sceneName = "Default Scene"; // Replace with a valid default scene name
-		}
-		if (textSource.isEmpty()) {
-			textSource = "Default Text Source"; // Replace with a valid default text source
-		}
 
 		if (hookEnabled) {
 			keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
@@ -89,12 +83,12 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 
 		obs_data_release(settings);
 	} else {
-		// Set default values if settings are not loaded
 		sceneName = "Default Scene";
 		textSource = "Default Text Source";
 		onScreenTime = 100;
 		prefix = "";
 		suffix = "";
+		displayInTextSource = false;
 	}
 }
 
@@ -102,20 +96,23 @@ HotkeyDisplayDock::~HotkeyDisplayDock() {}
 
 void HotkeyDisplayDock::setLog(const QString &log)
 {
-	if (sceneName == "Default Scene" || textSource == "Default Text Source" || textSource.isEmpty()) {
-		blog(LOG_WARNING,
-		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping log update.");
-		return;
-	}
-
+	// Always update the dock's label
 	label->setText(log);
 
-	if (textSource != "No text source available") {
-		updateTextSource(log);
-	}
+	// Conditionally update the text source based on the setting
+	if (displayInTextSource) {
+		if (sceneName == "Default Scene" || textSource == "Default Text Source" || textSource.isEmpty()) {
+			blog(LOG_WARNING,
+			     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping text update.");
+			return;
+		}
 
-	// Show the source when text is set
-	showSource();
+		if (textSource != "No text source available") {
+			updateTextSource(log);
+		}
+
+		showSource();
+	}
 
 	// Restart the timer with the on-screen time value
 	clearTimer->start(onScreenTime);
@@ -206,7 +203,8 @@ void HotkeyDisplayDock::clearDisplay()
 
 void HotkeyDisplayDock::updateTextSource(const QString &text)
 {
-	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
+	if (!displayInTextSource || sceneName == "Default Scene" || textSource.isEmpty() ||
+	    textSource == "No text source available") {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping text update.");
 		return;
@@ -231,6 +229,10 @@ void HotkeyDisplayDock::updateTextSource(const QString &text)
 
 void HotkeyDisplayDock::showSource()
 {
+	if (!displayInTextSource) {
+		return;
+	}
+
 	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping show source.");
@@ -259,6 +261,10 @@ void HotkeyDisplayDock::showSource()
 
 void HotkeyDisplayDock::hideSource()
 {
+	if (!displayInTextSource) {
+		return;
+	}
+
 	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping hide source.");
@@ -288,13 +294,17 @@ void HotkeyDisplayDock::hideSource()
 bool HotkeyDisplayDock::sceneAndSourceExist()
 {
 	if (sceneName.isEmpty() || textSource.isEmpty()) {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene name or text source is empty!");
+		if (displayInTextSource) {
+			blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene name or text source is empty!");
+		}
 		return false;
 	}
 
 	obs_source_t *scene = obs_get_source_by_name(sceneName.toUtf8().constData());
 	if (!scene) {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene '%s' does not exist!", sceneName.toUtf8().constData());
+		if (displayInTextSource) {
+			blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene '%s' does not exist!", sceneName.toUtf8().constData());
+		}
 		return false;
 	}
 
@@ -303,8 +313,10 @@ bool HotkeyDisplayDock::sceneAndSourceExist()
 	obs_source_release(scene);
 
 	if (!item) {
-		blog(LOG_WARNING, "[StreamUP Hotkey Display] Source '%s' does not exist in scene '%s'!",
-		     textSource.toUtf8().constData(), sceneName.toUtf8().constData());
+		if (displayInTextSource) {
+			blog(LOG_WARNING, "[StreamUP Hotkey Display] Source '%s' does not exist in scene '%s'!",
+			     textSource.toUtf8().constData(), sceneName.toUtf8().constData());
+		}
 		return false;
 	}
 

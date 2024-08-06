@@ -18,6 +18,8 @@ public:
 	~HotkeyDisplayDock();
 
 	void setLog(const QString &log);
+	void setDisplayInTextSource(bool enabled) { displayInTextSource = enabled; }
+
 
 public slots:
 	void toggleKeyboardHook();
@@ -50,6 +52,7 @@ private:
 	bool sceneAndSourceExist();
 	void stopAllActivities();
 	void resetToListeningState();
+	bool displayInTextSource;
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_DOCK_HPP

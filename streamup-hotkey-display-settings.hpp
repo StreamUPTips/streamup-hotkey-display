@@ -11,6 +11,8 @@
 #include <QSpinBox>
 #include <QLabel>
 #include <QLineEdit>
+#include <QCheckBox>
+#include <QGroupBox>
 #include <obs-frontend-api.h>
 #include "streamup-hotkey-display-dock.hpp"
 
@@ -28,6 +30,7 @@ public:
 	QString sceneName;
 	QString textSource;
 	int onScreenTime;
+	bool displayInTextSource;
 
 private:
 	HotkeyDisplayDock *hotkeyDisplayDock;
@@ -50,10 +53,14 @@ private:
 	QSpinBox *timeSpinBox;
 	QPushButton *applyButton;
 	QPushButton *closeButton;
+	QCheckBox *displayInTextSourceCheckBox;
+	QGroupBox *textSourceGroupBox;
+
 
 private slots:
 	void applySettings();
 	void onSceneChanged(const QString &sceneName);
+	void onDisplayInTextSourceToggled(bool checked); // Slot for checkbox state change
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_SETTINGS_HPP

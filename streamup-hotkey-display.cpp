@@ -291,6 +291,8 @@ bool obs_module_load()
 			hotkeyDisplayDock->onScreenTime = obs_data_get_int(settings, "onScreenTime");
 			hotkeyDisplayDock->prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 			hotkeyDisplayDock->suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
+			hotkeyDisplayDock->setDisplayInTextSource(
+				obs_data_get_bool(settings, "displayInTextSource")); // Apply the new setting
 
 			// Ensure default values are valid if not loaded
 			if (hotkeyDisplayDock->sceneName.isEmpty()) {
@@ -350,6 +352,7 @@ bool obs_module_load()
 			hotkeyDisplayDock->onScreenTime = 100;
 			hotkeyDisplayDock->prefix = "";
 			hotkeyDisplayDock->suffix = "";
+			hotkeyDisplayDock->setDisplayInTextSource(false);
 		}
 	}
 
