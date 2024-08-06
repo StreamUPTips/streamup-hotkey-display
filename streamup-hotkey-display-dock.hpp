@@ -31,19 +31,20 @@ public slots:
 	QLabel *getLabel() const { return label; }
 
 public:
-	QString sceneName;
-	QString textSource;
-	int onScreenTime;
-	QString prefix;
-	QString suffix;
-
-private:
 	QVBoxLayout *layout;
 	QHBoxLayout *buttonLayout;
 	QLabel *label;
 	QPushButton *toggleButton;
 	QPushButton *settingsButton;
 	bool hookEnabled;
+	QString sceneName;
+	QString textSource;
+	int onScreenTime;
+	QString prefix;
+	QString suffix;
+	bool displayInTextSource;
+
+private:
 	QTimer *clearTimer;
 	void updateTextSource(const QString &text);
 	void showSource();
@@ -51,7 +52,6 @@ private:
 	bool sceneAndSourceExist();
 	void stopAllActivities();
 	void resetToListeningState();
-	bool displayInTextSource;
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_DOCK_HPP

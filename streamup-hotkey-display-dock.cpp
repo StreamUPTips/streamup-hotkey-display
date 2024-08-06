@@ -43,6 +43,7 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	  suffix(""),
 	  displayInTextSource(false)
 {
+
 	label->setAlignment(Qt::AlignCenter);
 	label->setStyleSheet("QLabel {"
 			     "  border: 2px solid #888888;"
