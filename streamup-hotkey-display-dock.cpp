@@ -14,15 +14,19 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	  layout(new QVBoxLayout(this)),
 	  buttonLayout(new QHBoxLayout()),
 	  label(new QLabel(this)),
-	  toggleButton(new QPushButton("Enable Hook", this)), // Set initial text to "Enable Hook"
+	  toggleButton(new QPushButton("Enable Hook", this)),
 	  settingsButton(new QPushButton(this)),
-	  hookEnabled(false), // Ensure hook is disabled by default
+	  hookEnabled(false),
 	  clearTimer(new QTimer(this)),
-	  onScreenTime(100)
+	  sceneName("Default Scene"),        // Ensure a default value
+	  textSource("Default Text Source"), // Ensure a default value
+	  onScreenTime(100),                 // Ensure a default value
+	  prefix(""),                        // Ensure a default value
+	  suffix("")                         // Ensure a default value
 {
 	label->setAlignment(Qt::AlignCenter);
 	label->setStyleSheet("QLabel {"
-			     "  border: 2px solid #888888;" // Initial border style for disabled state
+			     "  border: 2px solid #888888;"
 			     "  padding: 10px;"
 			     "  border-radius: 10px;"
 			     "  font-size: 18px;"
@@ -32,29 +36,19 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	label->setFixedHeight(50);
 	layout->addWidget(label);
 
-	// Configure the toggle button
 	toggleButton->setFixedHeight(30);
-
-	// Configure the settings button with icon
 	settingsButton->setMinimumSize(26, 22);
 	settingsButton->setMaximumSize(26, 22);
 	settingsButton->setProperty("themeID", "configIconSmall");
 	settingsButton->setIconSize(QSize(20, 20));
 
-	// Add the buttons to the horizontal layout
 	buttonLayout->addWidget(toggleButton);
 	buttonLayout->addWidget(settingsButton);
-
-	// Add the horizontal layout to the main layout
 	layout->addLayout(buttonLayout);
-
 	setLayout(layout);
 
-	// Connect the buttons to their slots
 	connect(toggleButton, &QPushButton::clicked, this, &HotkeyDisplayDock::toggleKeyboardHook);
 	connect(settingsButton, &QPushButton::clicked, this, &HotkeyDisplayDock::openSettings);
-
-	// Connect the timer's timeout signal to the clearDisplay slot
 	connect(clearTimer, &QTimer::timeout, this, &HotkeyDisplayDock::clearDisplay);
 
 	// Load current settings
@@ -65,30 +59,42 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 		onScreenTime = obs_data_get_int(settings, "onScreenTime");
 		prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 		suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
-		obs_data_release(settings);
-	}
+		hookEnabled = obs_data_get_bool(settings, "hookEnabled");
 
-	// Set initial UI state based on hookEnabled
-	if (hookEnabled) {
-		toggleButton->setText("Disable Hook");
-		label->setStyleSheet("QLabel {"
-				     "  border: 2px solid #4CAF50;"
-				     "  padding: 10px;"
-				     "  border-radius: 10px;"
-				     "  font-size: 18px;"
-				     "  color: #FFFFFF;"
-				     "  background-color: #333333;"
-				     "}");
+		// Ensure sceneName and textSource have valid default values if not set
+		if (sceneName.isEmpty()) {
+			sceneName = "Default Scene"; // Replace with a valid default scene name
+		}
+		if (textSource.isEmpty()) {
+			textSource = "Default Text Source"; // Replace with a valid default text source
+		}
+
+		if (hookEnabled) {
+			keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
+			if (!keyboardHook) {
+				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
+				hookEnabled = false;
+			} else {
+				toggleButton->setText("Disable Hook");
+				label->setStyleSheet("QLabel {"
+						     "  border: 2px solid #4CAF50;"
+						     "  padding: 10px;"
+						     "  border-radius: 10px;"
+						     "  font-size: 18px;"
+						     "  color: #FFFFFF;"
+						     "  background-color: #333333;"
+						     "}");
+			}
+		}
+
+		obs_data_release(settings);
 	} else {
-		toggleButton->setText("Enable Hook");
-		label->setStyleSheet("QLabel {"
-				     "  border: 2px solid #888888;"
-				     "  padding: 10px;"
-				     "  border-radius: 10px;"
-				     "  font-size: 18px;"
-				     "  color: #FFFFFF;"
-				     "  background-color: #333333;"
-				     "}");
+		// Set default values if settings are not loaded
+		sceneName = "Default Scene";
+		textSource = "Default Text Source";
+		onScreenTime = 100;
+		prefix = "";
+		suffix = "";
 	}
 }
 
@@ -96,6 +102,12 @@ HotkeyDisplayDock::~HotkeyDisplayDock() {}
 
 void HotkeyDisplayDock::setLog(const QString &log)
 {
+	if (sceneName == "Default Scene" || textSource == "Default Text Source" || textSource.isEmpty()) {
+		blog(LOG_WARNING,
+		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping log update.");
+		return;
+	}
+
 	label->setText(log);
 
 	if (textSource != "No text source available") {
@@ -194,8 +206,10 @@ void HotkeyDisplayDock::clearDisplay()
 
 void HotkeyDisplayDock::updateTextSource(const QString &text)
 {
-	if (sceneName == "Select Scene" || textSource.isEmpty() || textSource == "No text source available") {
-		return; // Skip updating if the scene or text source is not valid
+	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
+		blog(LOG_WARNING,
+		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping text update.");
+		return;
 	}
 
 	if (sceneAndSourceExist() && !textSource.isEmpty()) {
@@ -217,7 +231,7 @@ void HotkeyDisplayDock::updateTextSource(const QString &text)
 
 void HotkeyDisplayDock::showSource()
 {
-	if (sceneName == "Select Scene" || textSource.isEmpty() || textSource == "No text source available") {
+	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping show source.");
 		return;
@@ -245,7 +259,7 @@ void HotkeyDisplayDock::showSource()
 
 void HotkeyDisplayDock::hideSource()
 {
-	if (sceneName == "Select Scene" || textSource.isEmpty() || textSource == "No text source available") {
+	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping hide source.");
 		return;
@@ -274,6 +288,7 @@ void HotkeyDisplayDock::hideSource()
 bool HotkeyDisplayDock::sceneAndSourceExist()
 {
 	if (sceneName.isEmpty() || textSource.isEmpty()) {
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] Scene name or text source is empty!");
 		return false;
 	}
 
@@ -315,4 +330,3 @@ void HotkeyDisplayDock::resetToListeningState()
 		}
 	}
 }
-

@@ -292,6 +292,23 @@ bool obs_module_load()
 			hotkeyDisplayDock->prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 			hotkeyDisplayDock->suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 
+			// Ensure default values are valid if not loaded
+			if (hotkeyDisplayDock->sceneName.isEmpty()) {
+				hotkeyDisplayDock->sceneName = "Default Scene";
+			}
+			if (hotkeyDisplayDock->textSource.isEmpty()) {
+				hotkeyDisplayDock->textSource = "Default Text Source";
+			}
+			if (hotkeyDisplayDock->onScreenTime == 0) {
+				hotkeyDisplayDock->onScreenTime = 100;
+			}
+			if (hotkeyDisplayDock->prefix.isEmpty()) {
+				hotkeyDisplayDock->prefix = "";
+			}
+			if (hotkeyDisplayDock->suffix.isEmpty()) {
+				hotkeyDisplayDock->suffix = "";
+			}
+
 			// Initialize hookEnabled from settings
 			bool hookEnabled = obs_data_get_bool(settings, "hookEnabled");
 			hotkeyDisplayDock->setHookEnabled(hookEnabled);
@@ -325,6 +342,15 @@ bool obs_module_load()
 			}
 		}
 		obs_data_release(settings);
+	} else {
+		// Apply default values if settings do not exist
+		if (hotkeyDisplayDock) {
+			hotkeyDisplayDock->sceneName = "Default Scene";
+			hotkeyDisplayDock->textSource = "Default Text Source";
+			hotkeyDisplayDock->onScreenTime = 100;
+			hotkeyDisplayDock->prefix = "";
+			hotkeyDisplayDock->suffix = "";
+		}
 	}
 
 	return true;
