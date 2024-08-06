@@ -218,7 +218,7 @@ std::string getKeyName(int vkCode)
 		return "Right Arrow";
 	case kVK_DownArrow:
 		return "Down Arrow";
-	case kVK_Insert:
+	case kVK_Help: // Use kVK_Help for Insert
 		return "Insert";
 	case kVK_F1:
 		return "F1";
@@ -322,7 +322,6 @@ std::string getKeyName(int vkCode)
 		return "Unknown";
 	}
 	}
-
 #endif
 }
 
@@ -436,6 +435,9 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 #ifdef __APPLE__
 CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
 {
+	(void)proxy;
+	(void)refcon;
+
 	if (type == kCGEventKeyDown || type == kCGEventKeyUp) {
 		CGKeyCode keyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
 		bool keyDown = (type == kCGEventKeyDown);
@@ -491,7 +493,7 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 
 void startMacOSKeyboardHook()
 {
-	eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0,
+	eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault,
 				    CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp), CGEventCallback, nullptr);
 
 	if (!eventTap) {
@@ -513,7 +515,6 @@ void stopMacOSKeyboardHook()
 	}
 }
 #endif
-
 #ifdef __linux__
 void startLinuxKeyboardHook()
 {
@@ -699,20 +700,9 @@ bool obs_module_load()
 			bool hookEnabled = obs_data_get_bool(settings, "hookEnabled");
 			hotkeyDisplayDock->setHookEnabled(hookEnabled);
 
+			// Set the button text based on the hook status
 			if (hookEnabled) {
-#ifdef _WIN32
-				keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
-				if (!keyboardHook) {
-					blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
-					hotkeyDisplayDock->setHookEnabled(false);
-				}
-#elif defined(__APPLE__)
-				startMacOSKeyboardHook();
-#elif defined(__linux__)
-				startLinuxKeyboardHook();
-#endif
-
-				hotkeyDisplayDock->getToggleButton()->setText(obs_module_text("StreamUPDisableHookButton"));
+				hotkeyDisplayDock->getToggleButton()->setText(obs_module_text("DisableHookButton"));
 				hotkeyDisplayDock->getLabel()->setStyleSheet("QLabel {"
 									     "  border: 2px solid #4CAF50;"
 									     "  padding: 10px;"
@@ -722,7 +712,7 @@ bool obs_module_load()
 									     "  background-color: #333333;"
 									     "}");
 			} else {
-				hotkeyDisplayDock->getToggleButton()->setText(obs_module_text("StreamUPEnableHookButton"));
+				hotkeyDisplayDock->getToggleButton()->setText(obs_module_text("EnableHookButton"));
 				hotkeyDisplayDock->getLabel()->setStyleSheet("QLabel {"
 									     "  border: 2px solid #888888;"
 									     "  padding: 10px;"
@@ -742,6 +732,17 @@ bool obs_module_load()
 			hotkeyDisplayDock->prefix = "";
 			hotkeyDisplayDock->suffix = "";
 			hotkeyDisplayDock->setDisplayInTextSource(false);
+
+			// Set the button text to the default state
+			hotkeyDisplayDock->getToggleButton()->setText(obs_module_text("EnableHookButton"));
+			hotkeyDisplayDock->getLabel()->setStyleSheet("QLabel {"
+								     "  border: 2px solid #888888;"
+								     "  padding: 10px;"
+								     "  border-radius: 10px;"
+								     "  font-size: 18px;"
+								     "  color: #FFFFFF;"
+								     "  background-color: #333333;"
+								     "}");
 		}
 	}
 
