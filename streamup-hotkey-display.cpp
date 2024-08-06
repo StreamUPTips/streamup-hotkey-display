@@ -433,6 +433,34 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 #endif
 
 #ifdef __APPLE__
+CFMachPortRef eventTap = nullptr;
+
+CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
+
+void startMacOSKeyboardHook()
+{
+	eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault,
+				    CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp), CGEventCallback, nullptr);
+
+	if (!eventTap) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+		return;
+	}
+
+	CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+	CGEventTapEnable(eventTap, true);
+	CFRelease(runLoopSource);
+}
+
+void stopMacOSKeyboardHook()
+{
+	if (eventTap) {
+		CFRelease(eventTap);
+		eventTap = nullptr;
+	}
+}
+
 CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
 {
 	(void)proxy;
@@ -489,30 +517,6 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 		}
 	}
 	return event;
-}
-
-void startMacOSKeyboardHook()
-{
-	eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault,
-				    CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp), CGEventCallback, nullptr);
-
-	if (!eventTap) {
-		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
-		return;
-	}
-
-	CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
-	CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
-	CGEventTapEnable(eventTap, true);
-	CFRelease(runLoopSource);
-}
-
-void stopMacOSKeyboardHook()
-{
-	if (eventTap) {
-		CFRelease(eventTap);
-		eventTap = nullptr;
-	}
 }
 #endif
 
