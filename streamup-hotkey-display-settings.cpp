@@ -1,4 +1,5 @@
 #include "streamup-hotkey-display-settings.hpp"
+#include <obs-module.h>
 
 extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
 
@@ -12,24 +13,34 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	  timeLayout(new QHBoxLayout()),
 	  prefixLayout(new QHBoxLayout()),
 	  suffixLayout(new QHBoxLayout()),
-	  sceneLabel(new QLabel("Scene:", this)),
-	  sourceLabel(new QLabel("Text Source:", this)),
-	  timeLabel(new QLabel("On Screen Time (ms):", this)),
-	  prefixLabel(new QLabel("Prefix:", this)),
-	  suffixLabel(new QLabel("Suffix:", this)),
+	  sceneLabel(new QLabel(obs_module_text("SceneLabel"), this)),
+	  sourceLabel(new QLabel(obs_module_text("TextSourceLabel"), this)),
+	  timeLabel(new QLabel(obs_module_text("OnScreenTimeLabel"), this)),
+	  prefixLabel(new QLabel(obs_module_text("PrefixLabel"), this)),
+	  suffixLabel(new QLabel(obs_module_text("SuffixLabel"), this)),
 	  sceneComboBox(new QComboBox(this)),
 	  sourceComboBox(new QComboBox(this)),
 	  timeSpinBox(new QSpinBox(this)),
 	  prefixLineEdit(new QLineEdit(this)),
 	  suffixLineEdit(new QLineEdit(this)),
-	  applyButton(new QPushButton("Apply", this)),
-	  closeButton(new QPushButton("Close", this)),
-	  displayInTextSourceCheckBox(new QCheckBox("Display Hotkeys in Text Source", this)),
-	  textSourceGroupBox(new QGroupBox("Text Source Settings", this)) // Initialize the group box
+	  applyButton(new QPushButton(obs_module_text("ApplyButton"), this)),
+	  closeButton(new QPushButton(obs_module_text("CloseButton"), this)),
+	  displayInTextSourceCheckBox(new QCheckBox(obs_module_text("DisplayHotkeysInTextSource"), this)),
+	  textSourceGroupBox(new QGroupBox(obs_module_text("TextSourceSettings"), this))
 {
-	setWindowTitle("Hotkey Display Settings");
+	setWindowTitle(obs_module_text("HotkeyDisplaySettingsTitle"));
 
 	setMinimumSize(300, 130);
+
+	// Configure tooltips
+	sceneComboBox->setToolTip(obs_module_text("SceneComboBoxTooltip"));
+	sourceComboBox->setToolTip(obs_module_text("TextSourceComboBoxTooltip"));
+	timeSpinBox->setToolTip(obs_module_text("OnScreenTimeTooltip"));
+	prefixLineEdit->setToolTip(obs_module_text("PrefixTooltip"));
+	suffixLineEdit->setToolTip(obs_module_text("SuffixTooltip"));
+	applyButton->setToolTip(obs_module_text("ApplyButtonTooltip"));
+	closeButton->setToolTip(obs_module_text("CloseButtonTooltip"));
+	displayInTextSourceCheckBox->setToolTip(obs_module_text("DisplayHotkeysInTextSourceTooltip"));
 
 	// Configure timeSpinBox
 	timeSpinBox->setRange(100, 10000);

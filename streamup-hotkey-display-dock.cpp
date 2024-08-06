@@ -4,6 +4,7 @@
 #include <obs.h>
 #include <QIcon>
 #include <QThread>
+#include <obs-module.h>
 
 extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
 extern HHOOK keyboardHook;
@@ -14,7 +15,7 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	  layout(new QVBoxLayout(this)),
 	  buttonLayout(new QHBoxLayout()),
 	  label(new QLabel(this)),
-	  toggleButton(new QPushButton("Enable Hook", this)),
+	  toggleButton(new QPushButton(obs_module_text("EnableHookButton"), this)),
 	  settingsButton(new QPushButton(this)),
 	  hookEnabled(false),
 	  clearTimer(new QTimer(this)),
@@ -38,10 +39,12 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	layout->addWidget(label);
 
 	toggleButton->setFixedHeight(30);
+	toggleButton->setToolTip(obs_module_text("EnableHookTooltip"));
 	settingsButton->setMinimumSize(26, 22);
 	settingsButton->setMaximumSize(26, 22);
 	settingsButton->setProperty("themeID", "configIconSmall");
 	settingsButton->setIconSize(QSize(20, 20));
+	settingsButton->setToolTip(obs_module_text("SettingsButtonTooltip"));
 
 	buttonLayout->addWidget(toggleButton);
 	buttonLayout->addWidget(settingsButton);
@@ -69,7 +72,7 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
 				hookEnabled = false;
 			} else {
-				toggleButton->setText("Disable Hook");
+				toggleButton->setText(obs_module_text("DisableHookButton"));
 				label->setStyleSheet("QLabel {"
 						     "  border: 2px solid #4CAF50;"
 						     "  padding: 10px;"

@@ -208,7 +208,7 @@ void LoadHotkeyDisplayDock()
 
 	hotkeyDisplayDock = new HotkeyDisplayDock(main_window);
 
-	const QString title = QString::fromUtf8(obs_module_text("Hotkey Display Dock"));
+	const QString title = QString::fromUtf8(obs_module_text("StreamUP Hotkey Display Dock"));
 	const auto name = "HotkeyDisplayDock";
 
 #if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
