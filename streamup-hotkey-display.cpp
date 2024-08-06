@@ -47,11 +47,33 @@ Display *display;
 
 std::unordered_set<int> pressedKeys;
 std::unordered_set<int> activeModifiers;
+#ifdef _WIN32
 std::unordered_set<int> modifierKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK_MENU, VK_LMENU, VK_RMENU,
 					VK_SHIFT,   VK_LSHIFT,   VK_RSHIFT,   VK_LWIN, VK_RWIN};
 
 std::unordered_set<int> singleKeys = {VK_INSERT, VK_DELETE, VK_HOME, VK_END, VK_PRIOR, VK_NEXT, VK_F1,  VK_F2,  VK_F3,
 				      VK_F4,     VK_F5,     VK_F6,   VK_F7,  VK_F8,    VK_F9,   VK_F10, VK_F11, VK_F12};
+#endif
+
+#ifdef __APPLE__
+std::unordered_set<int> modifierKeys = {kVK_Control,      kVK_Command,      kVK_Option,      kVK_Shift,
+					kVK_RightControl, kVK_RightCommand, kVK_RightOption, kVK_RightShift};
+
+std::unordered_set<int> singleKeys = {
+	kVK_ANSI_Keypad0, kVK_ANSI_Keypad1, kVK_ANSI_Keypad2, kVK_ANSI_Keypad3, kVK_ANSI_Keypad4,     kVK_ANSI_Keypad5,
+	kVK_ANSI_Keypad6, kVK_ANSI_Keypad7, kVK_ANSI_Keypad8, kVK_ANSI_Keypad9, kVK_ANSI_KeypadClear, kVK_ANSI_KeypadEnter,
+	kVK_Escape,       kVK_Delete,       kVK_Home,         kVK_End,          kVK_PageUp,           kVK_PageDown,
+	kVK_Return};
+#endif
+
+#ifdef __linux__
+std::unordered_set<int> modifierKeys = {XK_Control_L, XK_Control_R, XK_Super_L, XK_Super_R,
+					XK_Alt_L,     XK_Alt_R,     XK_Shift_L, XK_Shift_R};
+
+std::unordered_set<int> singleKeys = {XK_Insert, XK_Delete, XK_Home, XK_End, XK_Page_Up, XK_Page_Down, XK_F1,
+				      XK_F2,     XK_F3,     XK_F4,   XK_F5,  XK_F6,      XK_F7,        XK_F8,
+				      XK_F9,     XK_F10,    XK_F11,  XK_F12, XK_Return};
+#endif
 
 std::unordered_set<std::string> loggedCombinations;
 
@@ -71,6 +93,7 @@ bool isModifierKeyPressed()
 
 std::string getKeyName(int vkCode)
 {
+#ifdef _WIN32
 	switch (vkCode) {
 	case VK_CONTROL:
 	case VK_LCONTROL:
@@ -151,14 +174,175 @@ std::string getKeyName(int vkCode)
 		}
 	}
 	}
+#endif
+
+#ifdef __APPLE__
+	switch (vkCode) {
+	case kVK_Control:
+	case kVK_RightControl:
+		return "Ctrl";
+	case kVK_Command:
+	case kVK_RightCommand:
+		return "Cmd";
+	case kVK_Option:
+	case kVK_RightOption:
+		return "Alt";
+	case kVK_Shift:
+	case kVK_RightShift:
+		return "Shift";
+	case kVK_ANSI_KeypadEnter:
+	case kVK_Return:
+		return "Enter";
+	case kVK_Space:
+		return "Space";
+	case kVK_Delete:
+		return "Backspace";
+	case kVK_Tab:
+		return "Tab";
+	case kVK_Escape:
+		return "Escape";
+	case kVK_PageUp:
+		return "Page Up";
+	case kVK_PageDown:
+		return "Page Down";
+	case kVK_End:
+		return "End";
+	case kVK_Home:
+		return "Home";
+	case kVK_LeftArrow:
+		return "Left Arrow";
+	case kVK_UpArrow:
+		return "Up Arrow";
+	case kVK_RightArrow:
+		return "Right Arrow";
+	case kVK_DownArrow:
+		return "Down Arrow";
+	case kVK_Insert:
+		return "Insert";
+	case kVK_F1:
+		return "F1";
+	case kVK_F2:
+		return "F2";
+	case kVK_F3:
+		return "F3";
+	case kVK_F4:
+		return "F4";
+	case kVK_F5:
+		return "F5";
+	case kVK_F6:
+		return "F6";
+	case kVK_F7:
+		return "F7";
+	case kVK_F8:
+		return "F8";
+	case kVK_F9:
+		return "F9";
+	case kVK_F10:
+		return "F10";
+	case kVK_F11:
+		return "F11";
+	case kVK_F12:
+		return "F12";
+	default: {
+		return "Unknown";
+	}
+	}
+#endif
+
+#ifdef __linux__
+	switch (vkCode) {
+	case XK_Control_L:
+	case XK_Control_R:
+		return "Ctrl";
+	case XK_Super_L:
+	case XK_Super_R:
+		return "Super";
+	case XK_Alt_L:
+	case XK_Alt_R:
+		return "Alt";
+	case XK_Shift_L:
+	case XK_Shift_R:
+		return "Shift";
+	case XK_Return:
+		return "Enter";
+	case XK_space:
+		return "Space";
+	case XK_BackSpace:
+		return "Backspace";
+	case XK_Tab:
+		return "Tab";
+	case XK_Escape:
+		return "Escape";
+	case XK_Page_Up:
+		return "Page Up";
+	case XK_Page_Down:
+		return "Page Down";
+	case XK_End:
+		return "End";
+	case XK_Home:
+		return "Home";
+	case XK_Left:
+		return "Left Arrow";
+	case XK_Up:
+		return "Up Arrow";
+	case XK_Right:
+		return "Right Arrow";
+	case XK_Down:
+		return "Down Arrow";
+	case XK_Insert:
+		return "Insert";
+	case XK_Delete:
+		return "Delete";
+	case XK_F1:
+		return "F1";
+	case XK_F2:
+		return "F2";
+	case XK_F3:
+		return "F3";
+	case XK_F4:
+		return "F4";
+	case XK_F5:
+		return "F5";
+	case XK_F6:
+		return "F6";
+	case XK_F7:
+		return "F7";
+	case XK_F8:
+		return "F8";
+	case XK_F9:
+		return "F9";
+	case XK_F10:
+		return "F10";
+	case XK_F11:
+		return "F11";
+	case XK_F12:
+		return "F12";
+	default: {
+		return "Unknown";
+	}
+	}
+
+#endif
 }
 
 std::string getCurrentCombination()
 {
-	std::vector<int> orderedKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK_LWIN,   VK_RWIN,  VK_MENU,
-					VK_LMENU,   VK_RMENU,    VK_SHIFT,    VK_LSHIFT, VK_RSHIFT};
-	std::string combination;
+	std::vector<int> orderedKeys;
+#ifdef _WIN32
+	orderedKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK_LWIN,   VK_RWIN,  VK_MENU,
+		       VK_LMENU,   VK_RMENU,    VK_SHIFT,    VK_LSHIFT, VK_RSHIFT};
+#endif
 
+#ifdef __APPLE__
+	orderedKeys = {kVK_Control,      kVK_Command,      kVK_Option,      kVK_Shift,
+		       kVK_RightControl, kVK_RightCommand, kVK_RightOption, kVK_RightShift};
+#endif
+
+#ifdef __linux__
+	orderedKeys = {XK_Control_L, XK_Control_R, XK_Super_L, XK_Super_R, XK_Alt_L, XK_Alt_R, XK_Shift_L, XK_Shift_R};
+#endif
+
+	std::string combination;
 	for (int key : orderedKeys) {
 		if (pressedKeys.count(key)) {
 			combination += getKeyName(key) + " + ";
@@ -170,15 +354,25 @@ std::string getCurrentCombination()
 		}
 	}
 
-	return combination.substr(0, combination.size() - 3);
+	return combination.substr(0, combination.size() - 3); // Remove the trailing " + "
 }
 
 bool shouldLogCombination()
 {
+#ifdef _WIN32
 	if (activeModifiers.size() == 1 &&
 	    (activeModifiers.count(VK_SHIFT) > 0 || activeModifiers.count(VK_LSHIFT) > 0 || activeModifiers.count(VK_RSHIFT) > 0)) {
 		return false;
 	}
+#elif defined(__APPLE__)
+	if (activeModifiers.size() == 1 && (activeModifiers.count(kVK_Shift) > 0 || activeModifiers.count(kVK_RightShift) > 0)) {
+		return false;
+	}
+#elif defined(__linux__)
+	if (activeModifiers.size() == 1 && (activeModifiers.count(XK_Shift_L) > 0 || activeModifiers.count(XK_Shift_R) > 0)) {
+		return false;
+	}
+#endif
 	return true;
 }
 
@@ -395,7 +589,6 @@ void stopLinuxKeyboardHook()
 	}
 }
 #endif
-
 
 void LoadHotkeyDisplayDock()
 {
