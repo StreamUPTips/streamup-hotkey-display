@@ -36,11 +36,11 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	  settingsButton(new QPushButton(this)),
 	  hookEnabled(false),
 	  sceneName("Default Scene"),
-	  clearTimer(new QTimer(this)),
 	  textSource("Default Text Source"),
 	  onScreenTime(500),
 	  prefix(""),
 	  suffix(""),
+	  clearTimer(new QTimer(this)),
 	  displayInTextSource(false)
 {
 

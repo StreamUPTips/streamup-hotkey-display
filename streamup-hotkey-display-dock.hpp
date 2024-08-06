@@ -42,10 +42,10 @@ public:
 	int onScreenTime;
 	QString prefix;
 	QString suffix;
+	QTimer *clearTimer;
 	bool displayInTextSource;
 
 private:
-	QTimer *clearTimer;
 	void updateTextSource(const QString &text);
 	void showSource();
 	void hideSource();
