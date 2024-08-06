@@ -4,7 +4,6 @@
 #include <obs-module.h>
 #include <obs-frontend-api.h>
 #include <obs.h>
-#include <windows.h>
 #include <unordered_set>
 #include <string>
 #include <vector>
@@ -13,6 +12,20 @@
 #include <util/platform.h>
 #include "obs-websocket-api.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#ifdef __APPLE__
+#include <ApplicationServices/ApplicationServices.h>
+#endif
+
+#ifdef __linux__
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/extensions/XTest.h>
+#endif
+
 #define QT_UTF8(str) QString::fromUtf8(str)
 #define QT_TO_UTF8(str) str.toUtf8().constData()
 
@@ -20,7 +33,18 @@ OBS_DECLARE_MODULE()
 OBS_MODULE_AUTHOR("Andilippi")
 OBS_MODULE_USE_DEFAULT_LOCALE("streamup-hotkey-display", "en-US")
 
-HHOOK keyboardHook; // Define the keyboard hook
+#ifdef _WIN32
+HHOOK keyboardHook;
+#endif
+
+#ifdef __APPLE__
+static CFMachPortRef eventTap;
+#endif
+
+#ifdef __linux__
+Display *display;
+#endif
+
 std::unordered_set<int> pressedKeys;
 std::unordered_set<int> activeModifiers;
 std::unordered_set<int> modifierKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK_MENU, VK_LMENU, VK_RMENU,
@@ -32,8 +56,8 @@ std::unordered_set<int> singleKeys = {VK_INSERT, VK_DELETE, VK_HOME, VK_END, VK_
 std::unordered_set<std::string> loggedCombinations;
 
 HotkeyDisplayDock *hotkeyDisplayDock = nullptr;
-StreamupHotkeyDisplaySettings *settingsDialog = nullptr; // Ensure this is defined
-obs_websocket_vendor websocket_vendor = nullptr;         // Declare a vendor handle
+StreamupHotkeyDisplaySettings *settingsDialog = nullptr;
+obs_websocket_vendor websocket_vendor = nullptr;
 
 bool isModifierKeyPressed()
 {
@@ -146,12 +170,11 @@ std::string getCurrentCombination()
 		}
 	}
 
-	return combination.substr(0, combination.size() - 3); // Remove the trailing " + "
+	return combination.substr(0, combination.size() - 3);
 }
 
 bool shouldLogCombination()
 {
-	// Ignore if only shift is the active modifier
 	if (activeModifiers.size() == 1 &&
 	    (activeModifiers.count(VK_SHIFT) > 0 || activeModifiers.count(VK_LSHIFT) > 0 || activeModifiers.count(VK_RSHIFT) > 0)) {
 		return false;
@@ -159,6 +182,7 @@ bool shouldLogCombination()
 	return true;
 }
 
+#ifdef _WIN32
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	if (nCode == HC_ACTION) {
@@ -212,6 +236,166 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	}
 	return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
 }
+#endif
+
+#ifdef __APPLE__
+CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
+{
+	if (type == kCGEventKeyDown || type == kCGEventKeyUp) {
+		CGKeyCode keyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+		bool keyDown = (type == kCGEventKeyDown);
+
+		if (keyDown) {
+			pressedKeys.insert(keyCode);
+			if (modifierKeys.count(keyCode)) {
+				activeModifiers.insert(keyCode);
+			}
+		} else {
+			pressedKeys.erase(keyCode);
+			if (modifierKeys.count(keyCode)) {
+				activeModifiers.erase(keyCode);
+			}
+
+			if (!isModifierKeyPressed()) {
+				loggedCombinations.clear();
+			}
+		}
+
+		if ((pressedKeys.size() > 1 && isModifierKeyPressed() && shouldLogCombination()) ||
+		    (singleKeys.count(keyCode) && !activeModifiers.count(kVK_Shift) && !activeModifiers.count(kVK_RightShift))) {
+			std::string keyCombination = getCurrentCombination();
+			if (loggedCombinations.find(keyCombination) == loggedCombinations.end()) {
+				blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
+				if (hotkeyDisplayDock) {
+					hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
+				}
+				loggedCombinations.insert(keyCombination);
+
+				// Emit the WebSocket event
+				obs_data_t *event_data = obs_data_create();
+				obs_data_set_string(event_data, "key_combination", keyCombination.c_str());
+
+				// Add all key presses as an array
+				obs_data_array_t *key_presses_array = obs_data_array_create();
+				for (const int &key : pressedKeys) {
+					obs_data_t *key_data = obs_data_create();
+					obs_data_set_string(key_data, "key", getKeyName(key).c_str());
+					obs_data_array_push_back(key_presses_array, key_data);
+					obs_data_release(key_data);
+				}
+				obs_data_set_array(event_data, "key_presses", key_presses_array);
+				obs_data_array_release(key_presses_array);
+
+				obs_websocket_vendor_emit_event(websocket_vendor, "key_pressed", event_data);
+				obs_data_release(event_data);
+			}
+		}
+	}
+	return event;
+}
+
+void startMacOSKeyboardHook()
+{
+	eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0,
+				    CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp), CGEventCallback, nullptr);
+
+	if (!eventTap) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+		return;
+	}
+
+	CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+	CGEventTapEnable(eventTap, true);
+	CFRelease(runLoopSource);
+}
+
+void stopMacOSKeyboardHook()
+{
+	if (eventTap) {
+		CFRelease(eventTap);
+		eventTap = nullptr;
+	}
+}
+#endif
+
+#ifdef __linux__
+void startLinuxKeyboardHook()
+{
+	display = XOpenDisplay(nullptr);
+	if (!display) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to open X display!");
+		return;
+	}
+
+	Window root = DefaultRootWindow(display);
+	XSelectInput(display, root, KeyPressMask | KeyReleaseMask);
+
+	XEvent event;
+	while (true) {
+		XNextEvent(display, &event);
+		if (event.type == KeyPress) {
+			KeySym keysym = XLookupKeysym(&event.xkey, 0);
+			int keyCode = XKeysymToKeycode(display, keysym);
+			pressedKeys.insert(keyCode);
+			if (modifierKeys.count(keyCode)) {
+				activeModifiers.insert(keyCode);
+			}
+
+			if ((pressedKeys.size() > 1 && isModifierKeyPressed() && shouldLogCombination()) ||
+			    (singleKeys.count(keyCode) && !activeModifiers.count(XK_Shift_L) &&
+			     !activeModifiers.count(XK_Shift_R))) {
+				std::string keyCombination = getCurrentCombination();
+				if (loggedCombinations.find(keyCombination) == loggedCombinations.end()) {
+					blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
+					if (hotkeyDisplayDock) {
+						hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
+					}
+					loggedCombinations.insert(keyCombination);
+
+					// Emit the WebSocket event
+					obs_data_t *event_data = obs_data_create();
+					obs_data_set_string(event_data, "key_combination", keyCombination.c_str());
+
+					// Add all key presses as an array
+					obs_data_array_t *key_presses_array = obs_data_array_create();
+					for (const int &key : pressedKeys) {
+						obs_data_t *key_data = obs_data_create();
+						obs_data_set_string(key_data, "key", getKeyName(key).c_str());
+						obs_data_array_push_back(key_presses_array, key_data);
+						obs_data_release(key_data);
+					}
+					obs_data_set_array(event_data, "key_presses", key_presses_array);
+					obs_data_array_release(key_presses_array);
+
+					obs_websocket_vendor_emit_event(websocket_vendor, "key_pressed", event_data);
+					obs_data_release(event_data);
+				}
+			}
+		} else if (event.type == KeyRelease) {
+			KeySym keysym = XLookupKeysym(&event.xkey, 0);
+			int keyCode = XKeysymToKeycode(display, keysym);
+			pressedKeys.erase(keyCode);
+			if (modifierKeys.count(keyCode)) {
+				activeModifiers.erase(keyCode);
+			}
+
+			if (!isModifierKeyPressed()) {
+				loggedCombinations.clear();
+			}
+		}
+	}
+}
+
+void stopLinuxKeyboardHook()
+{
+	if (display) {
+		XCloseDisplay(display);
+		display = nullptr;
+	}
+}
+#endif
+
 
 void LoadHotkeyDisplayDock()
 {
@@ -283,17 +467,14 @@ bool obs_module_load()
 {
 	blog(LOG_INFO, "[StreamUP Hotkey Display] loaded version %s", PROJECT_VERSION);
 
-	// Initialize the WebSocket vendor
 	websocket_vendor = obs_websocket_register_vendor("streamup-hotkey-display");
 	if (!websocket_vendor) {
 		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to register websocket vendor!");
 		return false;
 	}
 
-	// Load the hotkey display dock
 	LoadHotkeyDisplayDock();
 
-	// Load settings
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
 
 	if (settings) {
@@ -303,10 +484,8 @@ bool obs_module_load()
 			hotkeyDisplayDock->onScreenTime = obs_data_get_int(settings, "onScreenTime");
 			hotkeyDisplayDock->prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 			hotkeyDisplayDock->suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
-			hotkeyDisplayDock->setDisplayInTextSource(
-				obs_data_get_bool(settings, "displayInTextSource")); // Apply the new setting
+			hotkeyDisplayDock->setDisplayInTextSource(obs_data_get_bool(settings, "displayInTextSource"));
 
-			// Ensure default values are valid if not loaded
 			if (hotkeyDisplayDock->sceneName.isEmpty()) {
 				hotkeyDisplayDock->sceneName = "Default Scene";
 			}
@@ -323,18 +502,23 @@ bool obs_module_load()
 				hotkeyDisplayDock->suffix = "";
 			}
 
-			// Initialize hookEnabled from settings
 			bool hookEnabled = obs_data_get_bool(settings, "hookEnabled");
 			hotkeyDisplayDock->setHookEnabled(hookEnabled);
 
-			// Set the initial state of the hook and UI
 			if (hookEnabled) {
+#ifdef _WIN32
 				keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
 				if (!keyboardHook) {
 					blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
 					hotkeyDisplayDock->setHookEnabled(false);
 				}
-				hotkeyDisplayDock->getToggleButton()->setText("Disable Hook");
+#elif defined(__APPLE__)
+				startMacOSKeyboardHook();
+#elif defined(__linux__)
+				startLinuxKeyboardHook();
+#endif
+
+				hotkeyDisplayDock->getToggleButton()->setText(obs_module_text("StreamUPDisableHookButton"));
 				hotkeyDisplayDock->getLabel()->setStyleSheet("QLabel {"
 									     "  border: 2px solid #4CAF50;"
 									     "  padding: 10px;"
@@ -344,7 +528,7 @@ bool obs_module_load()
 									     "  background-color: #333333;"
 									     "}");
 			} else {
-				hotkeyDisplayDock->getToggleButton()->setText("Enable Hook");
+				hotkeyDisplayDock->getToggleButton()->setText(obs_module_text("StreamUPEnableHookButton"));
 				hotkeyDisplayDock->getLabel()->setStyleSheet("QLabel {"
 									     "  border: 2px solid #888888;"
 									     "  padding: 10px;"
@@ -357,7 +541,6 @@ bool obs_module_load()
 		}
 		obs_data_release(settings);
 	} else {
-		// Apply default values if settings do not exist
 		if (hotkeyDisplayDock) {
 			hotkeyDisplayDock->sceneName = "Default Scene";
 			hotkeyDisplayDock->textSource = "Default Text Source";
@@ -373,13 +556,17 @@ bool obs_module_load()
 
 void obs_module_unload()
 {
-	// Remove the keyboard hook
+#ifdef _WIN32
 	if (keyboardHook) {
 		UnhookWindowsHookEx(keyboardHook);
 		keyboardHook = NULL;
 	}
+#elif defined(__APPLE__)
+	stopMacOSKeyboardHook();
+#elif defined(__linux__)
+	stopLinuxKeyboardHook();
+#endif
 
-	// Unregister the WebSocket vendor
 	if (websocket_vendor) {
 		obs_websocket_vendor_unregister_request(websocket_vendor, "streamup_hotkey_display");
 		websocket_vendor = nullptr;
