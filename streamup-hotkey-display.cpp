@@ -18,6 +18,7 @@
 
 #ifdef __APPLE__
 #include <ApplicationServices/ApplicationServices.h>
+#include <Carbon/Carbon.h>
 #endif
 
 #ifdef __linux__
@@ -47,6 +48,7 @@ Display *display;
 
 std::unordered_set<int> pressedKeys;
 std::unordered_set<int> activeModifiers;
+
 #ifdef _WIN32
 std::unordered_set<int> modifierKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK_MENU, VK_LMENU, VK_RMENU,
 					VK_SHIFT,   VK_LSHIFT,   VK_RSHIFT,   VK_LWIN, VK_RWIN};
