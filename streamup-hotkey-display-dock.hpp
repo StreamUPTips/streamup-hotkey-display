@@ -20,7 +20,6 @@ public:
 	void setLog(const QString &log);
 	void setDisplayInTextSource(bool enabled) { displayInTextSource = enabled; }
 
-
 public slots:
 	void toggleKeyboardHook();
 	void openSettings();

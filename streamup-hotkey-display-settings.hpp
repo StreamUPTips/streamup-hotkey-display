@@ -56,7 +56,6 @@ private:
 	QCheckBox *displayInTextSourceCheckBox;
 	QGroupBox *textSourceGroupBox;
 
-
 private slots:
 	void applySettings();
 	void onSceneChanged(const QString &sceneName);

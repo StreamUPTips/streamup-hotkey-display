@@ -7,6 +7,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
+extern HHOOK keyboardHook;
+extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 #endif
 
 #ifdef __APPLE__
@@ -79,6 +81,7 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 		displayInTextSource = obs_data_get_bool(settings, "displayInTextSource");
 		hookEnabled = obs_data_get_bool(settings, "hookEnabled");
 
+#ifdef _WIN32
 		if (hookEnabled) {
 			keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
 			if (!keyboardHook) {
@@ -96,6 +99,47 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 						     "}");
 			}
 		}
+#endif
+
+#ifdef __APPLE__
+		if (hookEnabled) {
+			startMacOSKeyboardHook();
+			if (!eventTap) {
+				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+				hookEnabled = false;
+			} else {
+				toggleButton->setText(obs_module_text("DisableHookButton"));
+				label->setStyleSheet("QLabel {"
+						     "  border: 2px solid #4CAF50;"
+						     "  padding: 10px;"
+						     "  border-radius: 10px;"
+						     "  font-size: 18px;"
+						     "  color: #FFFFFF;"
+						     "  background-color: #333333;"
+						     "}");
+			}
+		}
+#endif
+
+#ifdef __linux__
+		if (hookEnabled) {
+			startLinuxKeyboardHook();
+			if (!display) {
+				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to open X display!");
+				hookEnabled = false;
+			} else {
+				toggleButton->setText(obs_module_text("DisableHookButton"));
+				label->setStyleSheet("QLabel {"
+						     "  border: 2px solid #4CAF50;"
+						     "  padding: 10px;"
+						     "  border-radius: 10px;"
+						     "  font-size: 18px;"
+						     "  color: #FFFFFF;"
+						     "  background-color: #333333;"
+						     "}");
+			}
+		}
+#endif
 
 		obs_data_release(settings);
 	} else {
@@ -138,6 +182,7 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 {
 	blog(LOG_INFO, "[StreamUP Hotkey Display] Toggling hook. Current state: %s", hookEnabled ? "Enabled" : "Disabled");
 
+#ifdef _WIN32
 	if (hookEnabled) {
 		if (keyboardHook) {
 			UnhookWindowsHookEx(keyboardHook);
@@ -169,6 +214,69 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 					     "}");
 		}
 	}
+#endif
+
+#ifdef __APPLE__
+	if (hookEnabled) {
+		stopMacOSKeyboardHook();
+		toggleButton->setText("Enable Hook");
+		label->setStyleSheet("QLabel {"
+				     "  border: 2px solid #888888;"
+				     "  padding: 10px;"
+				     "  border-radius: 10px;"
+				     "  font-size: 18px;"
+				     "  color: #FFFFFF;"
+				     "  background-color: #333333;"
+				     "}");
+		stopAllActivities();
+	} else {
+		startMacOSKeyboardHook();
+		if (!eventTap) {
+			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+		} else {
+			toggleButton->setText("Disable Hook");
+			label->setStyleSheet("QLabel {"
+					     "  border: 2px solid #4CAF50;"
+					     "  padding: 10px;"
+					     "  border-radius: 10px;"
+					     "  font-size: 18px;"
+					     "  color: #FFFFFF;"
+					     "  background-color: #333333;"
+					     "}");
+		}
+	}
+#endif
+
+#ifdef __linux__
+	if (hookEnabled) {
+		stopLinuxKeyboardHook();
+		toggleButton->setText("Enable Hook");
+		label->setStyleSheet("QLabel {"
+				     "  border: 2px solid #888888;"
+				     "  padding: 10px;"
+				     "  border-radius: 10px;"
+				     "  font-size: 18px;"
+				     "  color: #FFFFFF;"
+				     "  background-color: #333333;"
+				     "}");
+		stopAllActivities();
+	} else {
+		startLinuxKeyboardHook();
+		if (!display) {
+			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to open X display!");
+		} else {
+			toggleButton->setText("Disable Hook");
+			label->setStyleSheet("QLabel {"
+					     "  border: 2px solid #4CAF50;"
+					     "  padding: 10px;"
+					     "  border-radius: 10px;"
+					     "  font-size: 18px;"
+					     "  color: #FFFFFF;"
+					     "  background-color: #333333;"
+					     "}");
+		}
+	}
+#endif
 
 	hookEnabled = !hookEnabled;
 
@@ -351,10 +459,30 @@ void HotkeyDisplayDock::resetToListeningState()
 {
 	stopAllActivities();
 	// Ensure the hook is enabled to listen for the next key press
+#ifdef _WIN32
 	if (!keyboardHook) {
 		keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
 		if (!keyboardHook) {
 			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
 		}
 	}
+#endif
+
+#ifdef __APPLE__
+	if (!eventTap) {
+		startMacOSKeyboardHook();
+		if (!eventTap) {
+			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+		}
+	}
+#endif
+
+#ifdef __linux__
+	if (!display) {
+		startLinuxKeyboardHook();
+		if (!display) {
+			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to open X display!");
+		}
+	}
+#endif
 }

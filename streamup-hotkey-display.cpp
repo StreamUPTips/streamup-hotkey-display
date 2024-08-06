@@ -515,6 +515,7 @@ void stopMacOSKeyboardHook()
 	}
 }
 #endif
+
 #ifdef __linux__
 void startLinuxKeyboardHook()
 {
