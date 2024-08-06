@@ -1,10 +1,23 @@
 #include "streamup-hotkey-display-dock.hpp"
 #include "streamup-hotkey-display-settings.hpp"
-#include <windows.h>
 #include <obs.h>
 #include <QIcon>
 #include <QThread>
 #include <obs-module.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#ifdef __APPLE__
+#include <ApplicationServices/ApplicationServices.h>
+#include <Carbon/Carbon.h>
+#endif
+
+#ifdef __linux__
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#endif
 
 extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
 extern HHOOK keyboardHook;
