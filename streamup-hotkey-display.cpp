@@ -35,6 +35,7 @@ OBS_MODULE_USE_DEFAULT_LOCALE("streamup-hotkey-display", "en-US")
 
 #ifdef _WIN32
 HHOOK keyboardHook;
+HHOOK mouseHook;
 #endif
 
 #ifdef __linux__
@@ -50,6 +51,9 @@ std::unordered_set<int> modifierKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK
 
 std::unordered_set<int> singleKeys = {VK_INSERT, VK_DELETE, VK_HOME, VK_END, VK_PRIOR, VK_NEXT, VK_F1,  VK_F2,  VK_F3,
 				      VK_F4,     VK_F5,     VK_F6,   VK_F7,  VK_F8,    VK_F9,   VK_F10, VK_F11, VK_F12};
+
+std::unordered_set<int> mouseButtons = {VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2};
+std::unordered_set<int> scrollActions = {WM_MOUSEWHEEL, WM_MOUSEHWHEEL};
 #endif
 
 #ifdef __APPLE__
@@ -92,6 +96,16 @@ std::string getKeyName(int vkCode)
 {
 #ifdef _WIN32
 	switch (vkCode) {
+	case VK_LBUTTON:
+		return "Left Click";
+	case VK_RBUTTON:
+		return "Right Click";
+	case VK_MBUTTON:
+		return "Middle Click";
+	case VK_XBUTTON1:
+		return "X Button 1";
+	case VK_XBUTTON2:
+		return "X Button 2";
 	case VK_CONTROL:
 	case VK_LCONTROL:
 	case VK_RCONTROL:
@@ -426,6 +440,57 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 	}
 	return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
 }
+
+LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	if (nCode == HC_ACTION) {
+		MSLLHOOKSTRUCT *p = (MSLLHOOKSTRUCT *)lParam;
+
+		std::string keyCombination = getCurrentCombination(); // Get current key combination with any modifiers
+
+		// Handle mouse button clicks
+		switch (wParam) {
+		case WM_LBUTTONDOWN:
+			keyCombination += " + Left Click";
+			break;
+		case WM_RBUTTONDOWN:
+			keyCombination += " + Right Click";
+			break;
+		case WM_MBUTTONDOWN:
+			keyCombination += " + Middle Click";
+			break;
+		case WM_XBUTTONDOWN:
+			if (HIWORD(p->mouseData) == XBUTTON1)
+				keyCombination += " + X Button 1";
+			else if (HIWORD(p->mouseData) == XBUTTON2)
+				keyCombination += " + X Button 2";
+			break;
+		}
+
+		// Handle scroll actions
+		if (wParam == WM_MOUSEWHEEL) {
+			if (GET_WHEEL_DELTA_WPARAM(p->mouseData) > 0)
+				keyCombination += " + Scroll Up";
+			else
+				keyCombination += " + Scroll Down";
+		} else if (wParam == WM_MOUSEHWHEEL) {
+			if (GET_WHEEL_DELTA_WPARAM(p->mouseData) > 0)
+				keyCombination += " + Scroll Right";
+			else
+				keyCombination += " + Scroll Left";
+		}
+
+		// Log and display the key combination
+		if (!keyCombination.empty()) {
+			blog(LOG_INFO, "[StreamUP Hotkey Display] Mouse action detected: %s", keyCombination.c_str());
+			if (hotkeyDisplayDock) {
+				hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
+			}
+		}
+	}
+	return CallNextHookEx(mouseHook, nCode, wParam, lParam);
+}
+
 #endif
 
 #ifdef __APPLE__

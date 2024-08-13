@@ -8,7 +8,9 @@
 #ifdef _WIN32
 #include <windows.h>
 extern HHOOK keyboardHook;
+extern HHOOK mouseHook;
 extern LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
+extern LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 #endif
 
 #ifdef __APPLE__
@@ -187,6 +189,10 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 
 #ifdef _WIN32
 	if (hookEnabled) {
+		if (mouseHook) {
+			UnhookWindowsHookEx(mouseHook);
+			mouseHook = NULL;
+		}
 		if (keyboardHook) {
 			UnhookWindowsHookEx(keyboardHook);
 			keyboardHook = NULL;
@@ -202,6 +208,10 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 				     "}");
 		stopAllActivities();
 	} else {
+		mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
+		if (!mouseHook) {
+			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set mouse hook!");
+		}
 		keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
 		if (!keyboardHook) {
 			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
