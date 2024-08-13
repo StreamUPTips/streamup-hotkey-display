@@ -446,45 +446,57 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 	if (nCode == HC_ACTION) {
 		MSLLHOOKSTRUCT *p = (MSLLHOOKSTRUCT *)lParam;
 
-		std::string keyCombination = getCurrentCombination(); // Get current key combination with any modifiers
+		// Only proceed if a modifier key is pressed
+		if (isModifierKeyPressed()) {
+			std::string keyCombination = getCurrentCombination(); // Get current key combination with any modifiers
 
-		// Handle mouse button clicks
-		switch (wParam) {
-		case WM_LBUTTONDOWN:
-			keyCombination += " + Left Click";
-			break;
-		case WM_RBUTTONDOWN:
-			keyCombination += " + Right Click";
-			break;
-		case WM_MBUTTONDOWN:
-			keyCombination += " + Middle Click";
-			break;
-		case WM_XBUTTONDOWN:
-			if (HIWORD(p->mouseData) == XBUTTON1)
-				keyCombination += " + X Button 1";
-			else if (HIWORD(p->mouseData) == XBUTTON2)
-				keyCombination += " + X Button 2";
-			break;
-		}
+			bool actionDetected = false;
 
-		// Handle scroll actions
-		if (wParam == WM_MOUSEWHEEL) {
-			if (GET_WHEEL_DELTA_WPARAM(p->mouseData) > 0)
-				keyCombination += " + Scroll Up";
-			else
-				keyCombination += " + Scroll Down";
-		} else if (wParam == WM_MOUSEHWHEEL) {
-			if (GET_WHEEL_DELTA_WPARAM(p->mouseData) > 0)
-				keyCombination += " + Scroll Right";
-			else
-				keyCombination += " + Scroll Left";
-		}
+			// Handle mouse button clicks
+			switch (wParam) {
+			case WM_LBUTTONDOWN:
+				keyCombination += " + Left Click";
+				actionDetected = true;
+				break;
+			case WM_RBUTTONDOWN:
+				keyCombination += " + Right Click";
+				actionDetected = true;
+				break;
+			case WM_MBUTTONDOWN:
+				keyCombination += " + Middle Click";
+				actionDetected = true;
+				break;
+			case WM_XBUTTONDOWN:
+				if (HIWORD(p->mouseData) == XBUTTON1) {
+					keyCombination += " + X Button 1";
+				} else if (HIWORD(p->mouseData) == XBUTTON2) {
+					keyCombination += " + X Button 2";
+				}
+				actionDetected = true;
+				break;
+			}
 
-		// Log and display the key combination
-		if (!keyCombination.empty()) {
-			blog(LOG_INFO, "[StreamUP Hotkey Display] Mouse action detected: %s", keyCombination.c_str());
-			if (hotkeyDisplayDock) {
-				hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
+			// Handle scroll actions
+			if (wParam == WM_MOUSEWHEEL) {
+				if (GET_WHEEL_DELTA_WPARAM(p->mouseData) > 0)
+					keyCombination += " + Scroll Up";
+				else
+					keyCombination += " + Scroll Down";
+				actionDetected = true;
+			} else if (wParam == WM_MOUSEHWHEEL) {
+				if (GET_WHEEL_DELTA_WPARAM(p->mouseData) > 0)
+					keyCombination += " + Scroll Right";
+				else
+					keyCombination += " + Scroll Left";
+				actionDetected = true;
+			}
+
+			// Log and display the key combination if an action was detected
+			if (actionDetected) {
+				blog(LOG_INFO, "[StreamUP Hotkey Display] Mouse action detected: %s", keyCombination.c_str());
+				if (hotkeyDisplayDock) {
+					hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
+				}
 			}
 		}
 	}

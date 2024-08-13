@@ -89,9 +89,14 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 #ifdef _WIN32
 		if (hookEnabled) {
 			keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
+			mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
+			if (!mouseHook) {
+				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set mouse hook!");
+			}
 			if (!keyboardHook) {
 				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
 				hookEnabled = false;
+
 			} else {
 				toggleButton->setText(obs_module_text("DisableHookButton"));
 				label->setStyleSheet("QLabel {"
