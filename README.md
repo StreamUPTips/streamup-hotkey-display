@@ -9,7 +9,7 @@ If you have any feedback or requests for this plugin please share them in the [S
 # Build
 1. In-tree build
     - Build OBS Studio: https://obsproject.com/wiki/Install-Instructions
-    - Check out this repository to UI/frontend-plugins/obs-hotkey-display
+    - Check out this repository to UI/frontend-plugins/streamup-hotkey-display
     - Add `add_subdirectory(obs-hotkey-display)` to UI/frontend-plugins//CMakeLists.txt
     - Rebuild OBS Studio
 
