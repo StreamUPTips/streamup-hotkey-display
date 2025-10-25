@@ -151,6 +151,9 @@ bool captureLetters = false;
 bool capturePunctuation = false;
 std::unordered_set<int> whitelistedKeySet;
 
+// Logging settings
+bool enableLogging = false;
+
 HotkeyDisplayDock *hotkeyDisplayDock = nullptr;
 StreamupHotkeyDisplaySettings *settingsDialog = nullptr;
 obs_websocket_vendor websocket_vendor = nullptr;
@@ -318,20 +321,28 @@ bool shouldCaptureSingleKey(int keyCode)
 bool shouldLogCombination()
 {
 	std::lock_guard<std::mutex> lock(keyStateMutex);
+
+	// Check if SHIFT is the only modifier
+	bool onlyShiftPressed = false;
 #ifdef _WIN32
-	if (activeModifiers.size() == 1 &&
-	    (activeModifiers.count(VK_SHIFT) > 0 || activeModifiers.count(VK_LSHIFT) > 0 || activeModifiers.count(VK_RSHIFT) > 0)) {
-		return false;
-	}
+	onlyShiftPressed = activeModifiers.size() == 1 &&
+	    (activeModifiers.count(VK_SHIFT) > 0 || activeModifiers.count(VK_LSHIFT) > 0 || activeModifiers.count(VK_RSHIFT) > 0);
 #elif defined(__APPLE__)
-	if (activeModifiers.size() == 1 && (activeModifiers.count(kVK_Shift) > 0 || activeModifiers.count(kVK_RightShift) > 0)) {
-		return false;
-	}
+	onlyShiftPressed = activeModifiers.size() == 1 && (activeModifiers.count(kVK_Shift) > 0 || activeModifiers.count(kVK_RightShift) > 0);
 #elif defined(__linux__)
-	if (activeModifiers.size() == 1 && (activeModifiers.count(XK_Shift_L) > 0 || activeModifiers.count(XK_Shift_R) > 0)) {
-		return false;
-	}
+	onlyShiftPressed = activeModifiers.size() == 1 && (activeModifiers.count(XK_Shift_L) > 0 || activeModifiers.count(XK_Shift_R) > 0);
 #endif
+
+	if (onlyShiftPressed) {
+		// Allow SHIFT + any non-modifier key (F keys, letters, numbers, etc.)
+		// Only block SHIFT by itself (no other keys pressed)
+		for (const int key : pressedKeys) {
+			if (modifierKeys.find(key) == modifierKeys.end()) {
+				return true; // Found a non-modifier key, so allow logging
+			}
+		}
+		return false; // Only SHIFT is pressed, no action key
+	}
 	return true;
 }
 
@@ -389,7 +400,9 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 					}
 				}
 				if (shouldLog) {
-					blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
+					if (enableLogging) {
+						blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
+					}
 					if (hotkeyDisplayDock) {
 						hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
 					}
@@ -469,7 +482,11 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 			// Log and display the key combination if an action was detected
 			if (actionDetected) {
-				blog(LOG_INFO, "[StreamUP Hotkey Display] Mouse action detected: %s", keyCombination.c_str());
+				if (enableLogging) {
+			if (enableLogging) {
+					blog(LOG_INFO, "[StreamUP Hotkey Display] Mouse action detected: %s", keyCombination.c_str());
+				}
+			}
 				if (hotkeyDisplayDock) {
 					hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
 				}
@@ -595,7 +612,9 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 				}
 			}
 			if (shouldLog) {
+				if (enableLogging) {
 				blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
+				}
 				if (hotkeyDisplayDock) {
 					hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
 				}
@@ -636,9 +655,11 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 				}
 			}
 
+			if (enableLogging) {
 			blog(LOG_INFO, "[StreamUP Hotkey Display] Mouse action detected: %s", keyCombination.c_str());
 			if (hotkeyDisplayDock) {
 				hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
+			}
 			}
 		}
 	}
@@ -712,7 +733,9 @@ void linuxKeyboardHookThreadFunc()
 						}
 					}
 					if (shouldLog) {
+				if (enableLogging) {
 						blog(LOG_INFO, "[StreamUP Hotkey Display] Keys pressed: %s", keyCombination.c_str());
+				}
 						if (hotkeyDisplayDock) {
 							hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
 						}
@@ -776,11 +799,13 @@ void linuxKeyboardHookThreadFunc()
 						break;
 					}
 
+			if (enableLogging) {
 					blog(LOG_INFO, "[StreamUP Hotkey Display] Mouse action detected: %s",
 					     keyCombination.c_str());
 					if (hotkeyDisplayDock) {
 						hotkeyDisplayDock->setLog(QString::fromStdString(keyCombination));
 					}
+			}
 				}
 			}
 		}
@@ -975,6 +1000,9 @@ void loadSingleKeyCaptureSettings(obs_data_t *settings)
 
 	QString whitelist = QString::fromUtf8(obs_data_get_string(settings, "whitelistedKeys"));
 	parseWhitelistKeys(whitelist);
+
+	// Load logging settings (default to false)
+	enableLogging = obs_data_get_bool(settings, "enableLogging");
 }
 
 void loadDockSettings(HotkeyDisplayDock *dock, obs_data_t *settings)

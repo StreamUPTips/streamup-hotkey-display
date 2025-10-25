@@ -39,6 +39,9 @@ public:
 	bool capturePunctuation;
 	QString whitelistedKeys;
 
+	// Logging settings
+	bool enableLogging;
+
 private:
 	HotkeyDisplayDock *hotkeyDisplayDock;
 	QVBoxLayout *mainLayout;
@@ -71,6 +74,9 @@ private:
 	QCheckBox *capturePunctuationCheckBox;
 	QLabel *whitelistLabel;
 	QLineEdit *whitelistLineEdit;
+
+	// Logging UI elements
+	QCheckBox *enableLoggingCheckBox;
 
 private slots:
 	void applySettings();

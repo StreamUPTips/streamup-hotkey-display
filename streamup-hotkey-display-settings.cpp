@@ -33,7 +33,8 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	  captureLettersCheckBox(new QCheckBox("Letters (A-Z)", this)),
 	  capturePunctuationCheckBox(new QCheckBox("Punctuation && Symbols", this)),
 	  whitelistLabel(new QLabel("Manual Whitelist (comma-separated, e.g., Q, W, E, R):", this)),
-	  whitelistLineEdit(new QLineEdit(this))
+	  whitelistLineEdit(new QLineEdit(this)),
+	  enableLoggingCheckBox(new QCheckBox("Enable logging to OBS log file", this))
 {
 	setWindowTitle(obs_module_text("Settings.Title"));
 	setAccessibleName(obs_module_text("Settings.Title"));
@@ -141,9 +142,13 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	whitelistLineEdit->setToolTip("Enter specific keys to capture (e.g., Q, W, E, R, 1, 2, 3)");
 	whitelistLineEdit->setPlaceholderText("e.g., Q, W, E, R, 1, 2, 3");
 
+	// Set tooltip for logging checkbox
+	enableLoggingCheckBox->setToolTip("Enable logging of key presses to the OBS log file (disabled by default)");
+
 	mainLayout->addWidget(displayInTextSourceCheckBox);
 	mainLayout->addWidget(textSourceGroupBox); // Add the group box to the main layout
 	mainLayout->addWidget(singleKeyGroupBox); // Add the single key capture group box
+	mainLayout->addWidget(enableLoggingCheckBox); // Add the logging checkbox
 	mainLayout->addLayout(timeLayout);         // Add the time layout to the main layout
 	mainLayout->addLayout(buttonLayout);
 	setLayout(mainLayout);
@@ -203,6 +208,10 @@ void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
 	whitelistedKeys = QString::fromUtf8(obs_data_get_string(settings, "whitelistedKeys"));
 	whitelistLineEdit->setText(whitelistedKeys);
 
+	// Logging settings (default to false if not present)
+	enableLogging = obs_data_get_bool(settings, "enableLogging");
+	enableLoggingCheckBox->setChecked(enableLogging);
+
 	onDisplayInTextSourceToggled(displayInTextSource); // Set initial visibility of related settings
 }
 
@@ -227,6 +236,9 @@ void StreamupHotkeyDisplaySettings::SaveSettings()
 	obs_data_set_bool(settings, "capturePunctuation", capturePunctuationCheckBox->isChecked());
 	obs_data_set_string(settings, "whitelistedKeys", whitelistLineEdit->text().toUtf8().constData());
 
+	// Logging settings
+	obs_data_set_bool(settings, "enableLogging", enableLoggingCheckBox->isChecked());
+
 	SaveLoadSettingsCallback(settings, true);
 	obs_data_release(settings);
 }
@@ -246,6 +258,9 @@ void StreamupHotkeyDisplaySettings::applySettings()
 	captureLetters = captureLettersCheckBox->isChecked();
 	capturePunctuation = capturePunctuationCheckBox->isChecked();
 	whitelistedKeys = whitelistLineEdit->text();
+
+	// Logging settings
+	enableLogging = enableLoggingCheckBox->isChecked();
 
 	SaveSettings();
 
