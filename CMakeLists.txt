@@ -1,10 +1,11 @@
-# --- Detect if the plugin is build out of tree or not ---
+# --- Detect if the plugin is built out of tree or not ---
 if(CMAKE_PROJECT_NAME STREQUAL "obs-studio")
   set(BUILD_OUT_OF_TREE OFF)
 else()
   set(BUILD_OUT_OF_TREE ON)
   cmake_minimum_required(VERSION 3.16...3.26)
 endif()
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCOPE)
 
 project(${_name} VERSION ${_version})
@@ -25,6 +26,7 @@ else()
   target_link_libraries(${PROJECT_NAME} PRIVATE OBS::frontend-api)
 endif()
 
+# Qt
 find_package(Qt6 COMPONENTS Widgets Core)
 if(BUILD_OUT_OF_TREE)
   if(OS_LINUX OR OS_FREEBSD OR OS_OPENBSD)
@@ -33,7 +35,7 @@ if(BUILD_OUT_OF_TREE)
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Core Qt::Widgets)
 
-# Find and link CURL library
+# CURL
 find_package(CURL REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE CURL::libcurl)
 
@@ -44,30 +46,47 @@ else()
   set(OBS_SHARED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../shared")
 endif()
 
-# Set include directories for the plugin
+# Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${OBS_SHARED_DIR}
+)
 
+# Extra Qt linkage on older Qt versions for *nix
 if((OS_LINUX OR OS_FREEBSD OR OS_OPENBSD) AND Qt_VERSION VERSION_LESS "6.9.0")
-	target_link_libraries(${PROJECT_NAME} PRIVATE Qt::GuiPrivate)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Qt::GuiPrivate)
 endif()
 
-target_compile_options(
-${PROJECT_NAME} PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header
-                                -Wno-comma>)
-set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-set_target_properties(
-${PROJECT_NAME}
-PROPERTIES AUTOMOC ON
-            AUTOUIC ON
-            AUTORCC ON)
+# Compiler / build flags
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<C_COMPILER_ID:Clang,AppleClang>:
+    -Wno-quoted-include-in-framework-header
+    -Wno-comma
+  >
+)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+  AUTOMOC ON
+  AUTOUIC ON
+  AUTORCC ON
+)
 
+# Version header
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+  ${CMAKE_CURRENT_SOURCE_DIR}/version.h
+)
+
+# Windows installer script template
 if(OS_WINDOWS)
-  configure_file(cmake/windows/resources/installer-Windows.iss.in "${CMAKE_CURRENT_BINARY_DIR}/installer-Windows.generated.iss")
+  configure_file(
+    cmake/windows/resources/installer-Windows.iss.in
+    "${CMAKE_CURRENT_BINARY_DIR}/installer-Windows.generated.iss"
+  )
 endif()
 
+# Sources
 target_sources(${PROJECT_NAME} PRIVATE
   streamup-hotkey-display.cpp
   streamup-hotkey-display.hpp
@@ -80,8 +99,18 @@ target_sources(${PROJECT_NAME} PRIVATE
   version.h
 )
 
+# Install / properties depending on build context
 if(BUILD_OUT_OF_TREE)
-	set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
+  # out-of-tree plugin build
+  set_target_properties_plugin(${PROJECT_NAME}
+    PROPERTIES
+      OUTPUT_NAME ${_name}
+  )
 else()
-	set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER "plugins/streamup" PREFIX "")
+  # in-tree OBS build
+  set_target_properties_obs(${PROJECT_NAME}
+    PROPERTIES
+      FOLDER "plugins/streamup"
+      PREFIX ""
+  )
 endif()
