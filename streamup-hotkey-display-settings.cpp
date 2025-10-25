@@ -13,34 +13,79 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	  timeLayout(new QHBoxLayout()),
 	  prefixLayout(new QHBoxLayout()),
 	  suffixLayout(new QHBoxLayout()),
-	  sceneLabel(new QLabel(obs_module_text("SceneLabel"), this)),
-	  sourceLabel(new QLabel(obs_module_text("TextSourceLabel"), this)),
-	  timeLabel(new QLabel(obs_module_text("OnScreenTimeLabel"), this)),
-	  prefixLabel(new QLabel(obs_module_text("PrefixLabel"), this)),
-	  suffixLabel(new QLabel(obs_module_text("SuffixLabel"), this)),
+	  sceneLabel(new QLabel(obs_module_text("Settings.Label.Scene"), this)),
+	  sourceLabel(new QLabel(obs_module_text("Settings.Label.TextSource"), this)),
+	  timeLabel(new QLabel(obs_module_text("Settings.Label.OnScreenTime"), this)),
+	  prefixLabel(new QLabel(obs_module_text("Settings.Label.Prefix"), this)),
+	  suffixLabel(new QLabel(obs_module_text("Settings.Label.Suffix"), this)),
 	  prefixLineEdit(new QLineEdit(this)),
 	  suffixLineEdit(new QLineEdit(this)),
 	  sceneComboBox(new QComboBox(this)),
 	  sourceComboBox(new QComboBox(this)),
 	  timeSpinBox(new QSpinBox(this)),
-	  applyButton(new QPushButton(obs_module_text("ApplyButton"), this)),
-	  closeButton(new QPushButton(obs_module_text("CloseButton"), this)),
-	  displayInTextSourceCheckBox(new QCheckBox(obs_module_text("DisplayHotkeysInTextSource"), this)),
-	  textSourceGroupBox(new QGroupBox(obs_module_text("TextSourceSettings"), this))
+	  applyButton(new QPushButton(obs_module_text("Settings.Button.Apply"), this)),
+	  closeButton(new QPushButton(obs_module_text("Settings.Button.Close"), this)),
+	  displayInTextSourceCheckBox(new QCheckBox(obs_module_text("Settings.Checkbox.DisplayInTextSource"), this)),
+	  textSourceGroupBox(new QGroupBox(obs_module_text("Settings.Group.TextSource"), this)),
+	  singleKeyGroupBox(new QGroupBox("Single Key Capture", this)),
+	  captureNumpadCheckBox(new QCheckBox("Numpad Keys (0-9, +, -, *, /)", this)),
+	  captureNumbersCheckBox(new QCheckBox("Number Row (0-9)", this)),
+	  captureLettersCheckBox(new QCheckBox("Letters (A-Z)", this)),
+	  capturePunctuationCheckBox(new QCheckBox("Punctuation && Symbols", this)),
+	  whitelistLabel(new QLabel("Manual Whitelist (comma-separated, e.g., Q, W, E, R):", this)),
+	  whitelistLineEdit(new QLineEdit(this))
 {
-	setWindowTitle(obs_module_text("HotkeyDisplaySettingsTitle"));
+	setWindowTitle(obs_module_text("Settings.Title"));
+	setAccessibleName(obs_module_text("Settings.Title"));
+	setAccessibleDescription(obs_module_text("Settings.Description"));
 
 	setMinimumSize(300, 130);
 
-	// Configure tooltips
-	sceneComboBox->setToolTip(obs_module_text("SceneComboBoxTooltip"));
-	sourceComboBox->setToolTip(obs_module_text("TextSourceComboBoxTooltip"));
-	timeSpinBox->setToolTip(obs_module_text("OnScreenTimeTooltip"));
-	prefixLineEdit->setToolTip(obs_module_text("PrefixTooltip"));
-	suffixLineEdit->setToolTip(obs_module_text("SuffixTooltip"));
-	applyButton->setToolTip(obs_module_text("ApplyButtonTooltip"));
-	closeButton->setToolTip(obs_module_text("CloseButtonTooltip"));
-	displayInTextSourceCheckBox->setToolTip(obs_module_text("DisplayHotkeysInTextSourceTooltip"));
+	// Configure tooltips and accessibility
+	sceneComboBox->setToolTip(obs_module_text("Settings.Tooltip.Scene"));
+	sceneComboBox->setAccessibleName(obs_module_text("Settings.Label.Scene"));
+	sceneComboBox->setAccessibleDescription(obs_module_text("Settings.Tooltip.Scene"));
+
+	sourceComboBox->setToolTip(obs_module_text("Settings.Tooltip.TextSource"));
+	sourceComboBox->setAccessibleName(obs_module_text("Settings.Label.TextSource"));
+	sourceComboBox->setAccessibleDescription(obs_module_text("Settings.Tooltip.TextSource"));
+
+	timeSpinBox->setToolTip(obs_module_text("Settings.Tooltip.OnScreenTime"));
+	timeSpinBox->setAccessibleName(obs_module_text("Settings.Label.OnScreenTime"));
+	timeSpinBox->setAccessibleDescription(obs_module_text("Settings.Tooltip.OnScreenTime"));
+
+	prefixLineEdit->setToolTip(obs_module_text("Settings.Tooltip.Prefix"));
+	prefixLineEdit->setAccessibleName(obs_module_text("Settings.Label.Prefix"));
+	prefixLineEdit->setAccessibleDescription(obs_module_text("Settings.Tooltip.Prefix"));
+	prefixLineEdit->setPlaceholderText("Optional prefix text...");
+
+	suffixLineEdit->setToolTip(obs_module_text("Settings.Tooltip.Suffix"));
+	suffixLineEdit->setAccessibleName(obs_module_text("Settings.Label.Suffix"));
+	suffixLineEdit->setAccessibleDescription(obs_module_text("Settings.Tooltip.Suffix"));
+	suffixLineEdit->setPlaceholderText("Optional suffix text...");
+
+	applyButton->setToolTip(obs_module_text("Settings.Tooltip.Apply"));
+	applyButton->setAccessibleName(obs_module_text("Settings.Button.Apply"));
+	applyButton->setAccessibleDescription(obs_module_text("Settings.Tooltip.Apply"));
+	applyButton->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
+
+	closeButton->setToolTip(obs_module_text("Settings.Tooltip.Close"));
+	closeButton->setAccessibleName(obs_module_text("Settings.Button.Close"));
+	closeButton->setAccessibleDescription(obs_module_text("Settings.Tooltip.Close"));
+	closeButton->setShortcut(QKeySequence(Qt::Key_Escape));
+
+	displayInTextSourceCheckBox->setToolTip(obs_module_text("Settings.Tooltip.DisplayInTextSource"));
+	displayInTextSourceCheckBox->setAccessibleName(obs_module_text("Settings.Checkbox.DisplayInTextSource"));
+	displayInTextSourceCheckBox->setAccessibleDescription(obs_module_text("Settings.Tooltip.DisplayInTextSource"));
+
+	textSourceGroupBox->setAccessibleName(obs_module_text("Settings.Group.TextSource"));
+
+	// Set accessible properties for labels
+	sceneLabel->setAccessibleName(obs_module_text("Settings.Label.Scene"));
+	sourceLabel->setAccessibleName(obs_module_text("Settings.Label.TextSource"));
+	timeLabel->setAccessibleName(obs_module_text("Settings.Label.OnScreenTime"));
+	prefixLabel->setAccessibleName(obs_module_text("Settings.Label.Prefix"));
+	suffixLabel->setAccessibleName(obs_module_text("Settings.Label.Suffix"));
 
 	// Configure timeSpinBox
 	timeSpinBox->setRange(100, 10000);
@@ -78,11 +123,39 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	buttonLayout->addWidget(applyButton);
 	buttonLayout->addWidget(closeButton);
 
+	// Create and configure singleKeyGroupBox layout
+	QVBoxLayout *singleKeyLayout = new QVBoxLayout();
+	singleKeyLayout->addWidget(captureNumpadCheckBox);
+	singleKeyLayout->addWidget(captureNumbersCheckBox);
+	singleKeyLayout->addWidget(captureLettersCheckBox);
+	singleKeyLayout->addWidget(capturePunctuationCheckBox);
+	singleKeyLayout->addWidget(whitelistLabel);
+	singleKeyLayout->addWidget(whitelistLineEdit);
+	singleKeyGroupBox->setLayout(singleKeyLayout);
+
+	// Set tooltips for single key capture options
+	captureNumpadCheckBox->setToolTip("Capture numpad keys like Num0-9, NumLock, +, -, *, /");
+	captureNumbersCheckBox->setToolTip("Capture number row keys 0-9 (without modifiers)");
+	captureLettersCheckBox->setToolTip("Capture letter keys A-Z (without modifiers)");
+	capturePunctuationCheckBox->setToolTip("Capture punctuation and symbol keys like comma, period, brackets, etc.");
+	whitelistLineEdit->setToolTip("Enter specific keys to capture (e.g., Q, W, E, R, 1, 2, 3)");
+	whitelistLineEdit->setPlaceholderText("e.g., Q, W, E, R, 1, 2, 3");
+
 	mainLayout->addWidget(displayInTextSourceCheckBox);
 	mainLayout->addWidget(textSourceGroupBox); // Add the group box to the main layout
+	mainLayout->addWidget(singleKeyGroupBox); // Add the single key capture group box
 	mainLayout->addLayout(timeLayout);         // Add the time layout to the main layout
 	mainLayout->addLayout(buttonLayout);
 	setLayout(mainLayout);
+
+	// Set up proper tab order for keyboard navigation
+	setTabOrder(displayInTextSourceCheckBox, sceneComboBox);
+	setTabOrder(sceneComboBox, sourceComboBox);
+	setTabOrder(sourceComboBox, prefixLineEdit);
+	setTabOrder(prefixLineEdit, suffixLineEdit);
+	setTabOrder(suffixLineEdit, timeSpinBox);
+	setTabOrder(timeSpinBox, applyButton);
+	setTabOrder(applyButton, closeButton);
 
 	// Connect signals to slots
 	connect(applyButton, &QPushButton::clicked, this, &StreamupHotkeyDisplaySettings::applySettings);
@@ -118,6 +191,18 @@ void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
 	QString suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 	suffixLineEdit->setText(suffix);
 
+	// Single key capture settings
+	captureNumpad = obs_data_get_bool(settings, "captureNumpad");
+	captureNumpadCheckBox->setChecked(captureNumpad);
+	captureNumbers = obs_data_get_bool(settings, "captureNumbers");
+	captureNumbersCheckBox->setChecked(captureNumbers);
+	captureLetters = obs_data_get_bool(settings, "captureLetters");
+	captureLettersCheckBox->setChecked(captureLetters);
+	capturePunctuation = obs_data_get_bool(settings, "capturePunctuation");
+	capturePunctuationCheckBox->setChecked(capturePunctuation);
+	whitelistedKeys = QString::fromUtf8(obs_data_get_string(settings, "whitelistedKeys"));
+	whitelistLineEdit->setText(whitelistedKeys);
+
 	onDisplayInTextSourceToggled(displayInTextSource); // Set initial visibility of related settings
 }
 
@@ -135,6 +220,13 @@ void StreamupHotkeyDisplaySettings::SaveSettings()
 	obs_data_set_string(settings, "prefix", prefixLineEdit->text().toUtf8().constData());
 	obs_data_set_string(settings, "suffix", suffixLineEdit->text().toUtf8().constData());
 
+	// Single key capture settings
+	obs_data_set_bool(settings, "captureNumpad", captureNumpadCheckBox->isChecked());
+	obs_data_set_bool(settings, "captureNumbers", captureNumbersCheckBox->isChecked());
+	obs_data_set_bool(settings, "captureLetters", captureLettersCheckBox->isChecked());
+	obs_data_set_bool(settings, "capturePunctuation", capturePunctuationCheckBox->isChecked());
+	obs_data_set_string(settings, "whitelistedKeys", whitelistLineEdit->text().toUtf8().constData());
+
 	SaveLoadSettingsCallback(settings, true);
 	obs_data_release(settings);
 }
@@ -148,6 +240,13 @@ void StreamupHotkeyDisplaySettings::applySettings()
 	QString newPrefix = prefixLineEdit->text();
 	QString newSuffix = suffixLineEdit->text();
 
+	// Single key capture settings
+	captureNumpad = captureNumpadCheckBox->isChecked();
+	captureNumbers = captureNumbersCheckBox->isChecked();
+	captureLetters = captureLettersCheckBox->isChecked();
+	capturePunctuation = capturePunctuationCheckBox->isChecked();
+	whitelistedKeys = whitelistLineEdit->text();
+
 	SaveSettings();
 
 	if (hotkeyDisplayDock) {
@@ -157,6 +256,14 @@ void StreamupHotkeyDisplaySettings::applySettings()
 		hotkeyDisplayDock->prefix = newPrefix;
 		hotkeyDisplayDock->suffix = newSuffix;
 		hotkeyDisplayDock->setDisplayInTextSource(displayInTextSource); // Apply the setting to the dock
+	}
+
+	// Reload settings to update global single key capture variables
+	obs_data_t *reloadedSettings = SaveLoadSettingsCallback(nullptr, false);
+	if (reloadedSettings) {
+		extern void loadSingleKeyCaptureSettings(obs_data_t *settings);
+		loadSingleKeyCaptureSettings(reloadedSettings);
+		obs_data_release(reloadedSettings);
 	}
 
 	accept(); // Close the dialog
@@ -193,7 +300,7 @@ void StreamupHotkeyDisplaySettings::PopulateSourceComboBox(const QString &sceneN
 
 	obs_source_t *scene = obs_get_source_by_name(sceneName.toUtf8().constData());
 	if (!scene) {
-		sourceComboBox->addItem("No text source available");
+		sourceComboBox->addItem(StyleConstants::NO_TEXT_SOURCE);
 		return;
 	}
 
@@ -204,7 +311,16 @@ void StreamupHotkeyDisplaySettings::PopulateSourceComboBox(const QString &sceneN
 			StreamupHotkeyDisplaySettings *settingsDialog = static_cast<StreamupHotkeyDisplaySettings *>(param);
 			obs_source_t *source = obs_sceneitem_get_source(item);
 			const char *sourceId = obs_source_get_id(source);
-			if (strcmp(sourceId, "text_gdiplus") == 0 || strcmp(sourceId, "text_gdiplus_v3") == 0) {
+
+			// Support all text source types across platforms
+			// Windows: text_gdiplus, text_gdiplus_v3
+			// Cross-platform: text_ft2_source_v2, text_ft2_source
+			// Linux: text_pango_source
+			if (strcmp(sourceId, "text_gdiplus") == 0 ||
+			    strcmp(sourceId, "text_gdiplus_v3") == 0 ||
+			    strcmp(sourceId, "text_ft2_source_v2") == 0 ||
+			    strcmp(sourceId, "text_ft2_source") == 0 ||
+			    strcmp(sourceId, "text_pango_source") == 0) {
 				const char *sourceName = obs_source_get_name(source);
 				settingsDialog->sourceComboBox->addItem(QString::fromUtf8(sourceName));
 			}
@@ -215,7 +331,7 @@ void StreamupHotkeyDisplaySettings::PopulateSourceComboBox(const QString &sceneN
 	obs_source_release(scene);
 
 	if (sourceComboBox->count() == 0) {
-		sourceComboBox->addItem("No text source available");
+		sourceComboBox->addItem(StyleConstants::NO_TEXT_SOURCE);
 	}
 }
 

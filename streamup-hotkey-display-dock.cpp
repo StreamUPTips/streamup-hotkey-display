@@ -2,6 +2,8 @@
 #include "streamup-hotkey-display-settings.hpp"
 #include <obs.h>
 #include <QIcon>
+#include <QStyle>
+#include <QToolButton>
 #include <QThread>
 #include <obs-module.h>
 
@@ -25,6 +27,11 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 #ifdef __linux__
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <atomic>
+extern Display *display;
+extern std::atomic<bool> linuxHookRunning;
+extern void startLinuxKeyboardHook();
+extern void stopLinuxKeyboardHook();
 #endif
 
 extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
@@ -32,47 +39,133 @@ extern obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving);
 HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	: QFrame(parent),
 	  layout(new QVBoxLayout(this)),
-	  buttonLayout(new QHBoxLayout()),
+	  toolbar(new QToolBar(this)),
 	  label(new QLabel(this)),
-	  toggleButton(new QPushButton(obs_module_text("EnableHookButton"), this)),
-	  settingsButton(new QPushButton(this)),
+	  toggleAction(new QAction(this)),
+	  settingsAction(new QAction(this)),
 	  hookEnabled(false),
-	  sceneName("Default Scene"),
-	  textSource("Default Text Source"),
-	  onScreenTime(500),
+	  sceneName(StyleConstants::DEFAULT_SCENE_NAME),
+	  textSource(StyleConstants::DEFAULT_TEXT_SOURCE),
+	  onScreenTime(StyleConstants::DEFAULT_ONSCREEN_TIME),
 	  prefix(""),
 	  suffix(""),
 	  clearTimer(new QTimer(this)),
 	  displayInTextSource(false)
 {
+	// Set object names for theme styling
+	setObjectName("hotkeyDisplayDock");
+	layout->setObjectName("hotkeyDisplayLayout");
+	toolbar->setObjectName("hotkeyDisplayToolbar");
+	label->setObjectName("hotkeyDisplayLabel");
+
+	// Set frame properties (matching OBS dock structure)
+	setContentsMargins(0, 0, 0, 0);
+	setMinimumWidth(100);
+	setMinimumHeight(50);
+
+	// Set layout properties (zero margins and spacing like OBS)
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(0);
 
 	label->setAlignment(Qt::AlignCenter);
-	label->setStyleSheet("QLabel {"
-			     "  border: 2px solid #888888;"
-			     "  padding: 10px;"
-			     "  border-radius: 10px;"
-			     "  font-size: 18px;"
-			     "  color: #FFFFFF;"
-			     "  background-color: #333333;"
-			     "}");
-	label->setFixedHeight(50);
-	layout->addWidget(label);
+	label->setFrameShape(QFrame::NoFrame);
+	label->setFrameShadow(QFrame::Plain);
+	label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+	label->setMinimumHeight(50);
+	label->setWordWrap(true);
+	label->setProperty("hotkeyState", "inactive");
 
-	toggleButton->setFixedHeight(30);
-	toggleButton->setToolTip(obs_module_text("EnableHookTooltip"));
-	settingsButton->setMinimumSize(26, 22);
-	settingsButton->setMaximumSize(26, 22);
-	settingsButton->setProperty("themeID", "configIconSmall");
-	settingsButton->setIconSize(QSize(20, 20));
-	settingsButton->setToolTip(obs_module_text("SettingsButtonTooltip"));
+	// Use theme-aware styling
+	label->setStyleSheet(
+		"QLabel[hotkeyState=\"active\"] {"
+		"  border: 2px solid palette(highlight);"
+		"  border-radius: 4px;"
+		"  padding: 10px;"
+		"  font-size: 14pt;"
+		"  background: palette(base);"
+		"}"
+		"QLabel[hotkeyState=\"inactive\"] {"
+		"  border: 2px solid palette(mid);"
+		"  border-radius: 4px;"
+		"  padding: 10px;"
+		"  font-size: 14pt;"
+		"  background: palette(base);"
+		"}"
+	);
 
-	buttonLayout->addWidget(toggleButton);
-	buttonLayout->addWidget(settingsButton);
-	layout->addLayout(buttonLayout);
+	// Add label with stretch factor 1 (expands to fill space)
+	layout->addWidget(label, 1);
+
+	// Configure toolbar (matching OBS style)
+	toolbar->setMovable(false);
+	toolbar->setFloatable(false);
+	toolbar->setIconSize(QSize(16, 16));
+
+	// Configure toggle action
+	toggleAction->setText(obs_module_text("Dock.Button.Enable"));
+	toggleAction->setCheckable(true);
+	toggleAction->setChecked(false);
+	toggleAction->setToolTip(obs_module_text("Dock.Tooltip.Enable"));
+	toggleAction->setProperty("class", "icon-toggle");
+
+	// Configure settings action
+	toggleAction->setObjectName("hotkeyDisplayToggleAction");
+	settingsAction->setObjectName("hotkeyDisplaySettingsAction");
+	settingsAction->setToolTip(obs_module_text("Dock.Tooltip.Settings"));
+	settingsAction->setProperty("themeID", "configIconSmall");
+	settingsAction->setProperty("class", "icon-gear");
+
+	// Set accessible properties for the display label
+	label->setAccessibleName(obs_module_text("Dock.Description"));
+	label->setAccessibleDescription(obs_module_text("Dock.Label.Idle"));
+
+	// Add actions to toolbar
+	toolbar->addAction(toggleAction);
+	toolbar->addSeparator();
+	toolbar->addAction(settingsAction);
+
+	// Copy dynamic properties from actions to widgets (OBS pattern)
+	for (QAction *action : toolbar->actions()) {
+		QWidget *widget = toolbar->widgetForAction(action);
+		if (!widget)
+			continue;
+
+		for (QByteArray &propName : action->dynamicPropertyNames()) {
+			widget->setProperty(propName, action->property(propName));
+		}
+
+		// Force style refresh to apply properties
+		if (QStyle *style = widget->style()) {
+			style->unpolish(widget);
+			style->polish(widget);
+		}
+	}
+
+	// Configure toggle button to show text (not just icon)
+	QWidget *toggleWidget = toolbar->widgetForAction(toggleAction);
+	if (toggleWidget) {
+		QToolButton *toggleToolButton = qobject_cast<QToolButton *>(toggleWidget);
+		if (toggleToolButton) {
+			toggleToolButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+			toggleToolButton->setObjectName("hotkeyDisplayToggleButton");
+			toggleToolButton->setMinimumWidth(100); // Ensure enough space for text
+			toggleToolButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+		}
+	}
+
+	// Set object name for settings button widget
+	QWidget *settingsWidget = toolbar->widgetForAction(settingsAction);
+	if (settingsWidget) {
+		settingsWidget->setObjectName("hotkeyDisplaySettingsButton");
+	}
+
+	// Add toolbar with stretch factor 0 (fixed height at bottom)
+	layout->addWidget(toolbar, 0);
+
 	setLayout(layout);
 
-	connect(toggleButton, &QPushButton::clicked, this, &HotkeyDisplayDock::toggleKeyboardHook);
-	connect(settingsButton, &QPushButton::clicked, this, &HotkeyDisplayDock::openSettings);
+	connect(toggleAction, &QAction::triggered, this, &HotkeyDisplayDock::toggleKeyboardHook);
+	connect(settingsAction, &QAction::triggered, this, &HotkeyDisplayDock::openSettings);
 	connect(clearTimer, &QTimer::timeout, this, &HotkeyDisplayDock::clearDisplay);
 
 	// Load current settings
@@ -86,76 +179,21 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 		displayInTextSource = obs_data_get_bool(settings, "displayInTextSource");
 		hookEnabled = obs_data_get_bool(settings, "hookEnabled");
 
-#ifdef _WIN32
+		// Use helper function to enable hooks if configured
 		if (hookEnabled) {
-			keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
-			mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
-			if (!mouseHook) {
-				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set mouse hook!");
-			}
-			if (!keyboardHook) {
-				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
-				hookEnabled = false;
-
+			if (enableHooks()) {
+				updateUIState(true);
 			} else {
-				toggleButton->setText(obs_module_text("DisableHookButton"));
-				label->setStyleSheet("QLabel {"
-						     "  border: 2px solid #4CAF50;"
-						     "  padding: 10px;"
-						     "  border-radius: 10px;"
-						     "  font-size: 18px;"
-						     "  color: #FFFFFF;"
-						     "  background-color: #333333;"
-						     "}");
+				hookEnabled = false;
+				updateUIState(false);
 			}
 		}
-#endif
-
-#ifdef __APPLE__
-		if (hookEnabled) {
-			startMacOSKeyboardHook();
-			if (!eventTap) {
-				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
-				hookEnabled = false;
-			} else {
-				toggleButton->setText(obs_module_text("DisableHookButton"));
-				label->setStyleSheet("QLabel {"
-						     "  border: 2px solid #4CAF50;"
-						     "  padding: 10px;"
-						     "  border-radius: 10px;"
-						     "  font-size: 18px;"
-						     "  color: #FFFFFF;"
-						     "  background-color: #333333;"
-						     "}");
-			}
-		}
-#endif
-
-#ifdef __linux__
-		if (hookEnabled) {
-			startLinuxKeyboardHook();
-			if (!display) {
-				blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to open X display!");
-				hookEnabled = false;
-			} else {
-				toggleButton->setText(obs_module_text("DisableHookButton"));
-				label->setStyleSheet("QLabel {"
-						     "  border: 2px solid #4CAF50;"
-						     "  padding: 10px;"
-						     "  border-radius: 10px;"
-						     "  font-size: 18px;"
-						     "  color: #FFFFFF;"
-						     "  background-color: #333333;"
-						     "}");
-			}
-		}
-#endif
 
 		obs_data_release(settings);
 	} else {
-		sceneName = "Default Scene";
-		textSource = "Default Text Source";
-		onScreenTime = 100;
+		sceneName = StyleConstants::DEFAULT_SCENE_NAME;
+		textSource = StyleConstants::DEFAULT_TEXT_SOURCE;
+		onScreenTime = StyleConstants::DEFAULT_ONSCREEN_TIME;
 		prefix = "";
 		suffix = "";
 		displayInTextSource = false;
@@ -171,13 +209,13 @@ void HotkeyDisplayDock::setLog(const QString &log)
 
 	// Conditionally update the text source based on the setting
 	if (displayInTextSource) {
-		if (sceneName == "Default Scene" || textSource == "Default Text Source" || textSource.isEmpty()) {
+		if (sceneName == StyleConstants::DEFAULT_SCENE_NAME || textSource == StyleConstants::DEFAULT_TEXT_SOURCE || textSource.isEmpty()) {
 			blog(LOG_WARNING,
 			     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping text update.");
 			return;
 		}
 
-		if (textSource != "No text source available") {
+		if (textSource != StyleConstants::NO_TEXT_SOURCE) {
 			updateTextSource(log);
 		}
 
@@ -192,111 +230,26 @@ void HotkeyDisplayDock::toggleKeyboardHook()
 {
 	blog(LOG_INFO, "[StreamUP Hotkey Display] Toggling hook. Current state: %s", hookEnabled ? "Enabled" : "Disabled");
 
-#ifdef _WIN32
-	if (hookEnabled) {
-		if (mouseHook) {
-			UnhookWindowsHookEx(mouseHook);
-			mouseHook = NULL;
-		}
-		if (keyboardHook) {
-			UnhookWindowsHookEx(keyboardHook);
-			keyboardHook = NULL;
-		}
-		toggleButton->setText("Enable Hook");
-		label->setStyleSheet("QLabel {"
-				     "  border: 2px solid #888888;"
-				     "  padding: 10px;"
-				     "  border-radius: 10px;"
-				     "  font-size: 18px;"
-				     "  color: #FFFFFF;"
-				     "  background-color: #333333;"
-				     "}");
-		stopAllActivities();
-	} else {
-		mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
-		if (!mouseHook) {
-			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set mouse hook!");
-		}
-		keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
-		if (!keyboardHook) {
-			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
-		} else {
-			toggleButton->setText("Disable Hook");
-			label->setStyleSheet("QLabel {"
-					     "  border: 2px solid #4CAF50;"
-					     "  padding: 10px;"
-					     "  border-radius: 10px;"
-					     "  font-size: 18px;"
-					     "  color: #FFFFFF;"
-					     "  background-color: #333333;"
-					     "}");
-		}
-	}
-#endif
+	// Get the desired state from the toggle action
+	bool shouldEnable = toggleAction->isChecked();
 
-#ifdef __APPLE__
-	if (hookEnabled) {
-		stopMacOSKeyboardHook();
-		toggleButton->setText("Enable Hook");
-		label->setStyleSheet("QLabel {"
-				     "  border: 2px solid #888888;"
-				     "  padding: 10px;"
-				     "  border-radius: 10px;"
-				     "  font-size: 18px;"
-				     "  color: #FFFFFF;"
-				     "  background-color: #333333;"
-				     "}");
-		stopAllActivities();
-	} else {
-		startMacOSKeyboardHook();
-		if (!eventTap) {
-			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+	if (shouldEnable) {
+		// Enable hooks
+		if (enableHooks()) {
+			hookEnabled = true;
+			updateUIState(true);
 		} else {
-			toggleButton->setText("Disable Hook");
-			label->setStyleSheet("QLabel {"
-					     "  border: 2px solid #4CAF50;"
-					     "  padding: 10px;"
-					     "  border-radius: 10px;"
-					     "  font-size: 18px;"
-					     "  color: #FFFFFF;"
-					     "  background-color: #333333;"
-					     "}");
+			// Failed to enable, revert action state
+			hookEnabled = false;
+			toggleAction->setChecked(false);
+			updateUIState(false);
 		}
-	}
-#endif
-
-#ifdef __linux__
-	if (hookEnabled) {
-		stopLinuxKeyboardHook();
-		toggleButton->setText("Enable Hook");
-		label->setStyleSheet("QLabel {"
-				     "  border: 2px solid #888888;"
-				     "  padding: 10px;"
-				     "  border-radius: 10px;"
-				     "  font-size: 18px;"
-				     "  color: #FFFFFF;"
-				     "  background-color: #333333;"
-				     "}");
-		stopAllActivities();
 	} else {
-		startLinuxKeyboardHook();
-		if (!display) {
-			blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to open X display!");
-		} else {
-			toggleButton->setText("Disable Hook");
-			label->setStyleSheet("QLabel {"
-					     "  border: 2px solid #4CAF50;"
-					     "  padding: 10px;"
-					     "  border-radius: 10px;"
-					     "  font-size: 18px;"
-					     "  color: #FFFFFF;"
-					     "  background-color: #333333;"
-					     "}");
-		}
+		// Disable hooks
+		disableHooks();
+		hookEnabled = false;
+		updateUIState(false);
 	}
-#endif
-
-	hookEnabled = !hookEnabled;
 
 	// Save the hookEnabled state to settings
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
@@ -345,8 +298,8 @@ void HotkeyDisplayDock::clearDisplay()
 
 void HotkeyDisplayDock::updateTextSource(const QString &text)
 {
-	if (!displayInTextSource || sceneName == "Default Scene" || textSource.isEmpty() ||
-	    textSource == "No text source available") {
+	if (!displayInTextSource || sceneName == StyleConstants::DEFAULT_SCENE_NAME || textSource.isEmpty() ||
+	    textSource == StyleConstants::NO_TEXT_SOURCE) {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping text update.");
 		return;
@@ -375,7 +328,7 @@ void HotkeyDisplayDock::showSource()
 		return;
 	}
 
-	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
+	if (sceneName == StyleConstants::DEFAULT_SCENE_NAME || textSource.isEmpty() || textSource == StyleConstants::NO_TEXT_SOURCE) {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping show source.");
 		return;
@@ -407,7 +360,7 @@ void HotkeyDisplayDock::hideSource()
 		return;
 	}
 
-	if (sceneName == "Default Scene" || textSource.isEmpty() || textSource == "No text source available") {
+	if (sceneName == StyleConstants::DEFAULT_SCENE_NAME || textSource.isEmpty() || textSource == StyleConstants::NO_TEXT_SOURCE) {
 		blog(LOG_WARNING,
 		     "[StreamUP Hotkey Display] Scene or text source is not selected or invalid. Skipping hide source.");
 		return;
@@ -503,4 +456,85 @@ void HotkeyDisplayDock::resetToListeningState()
 		}
 	}
 #endif
+}
+
+bool HotkeyDisplayDock::enableHooks()
+{
+#ifdef _WIN32
+	mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
+	if (!mouseHook) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set mouse hook!");
+	}
+	keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
+	if (!keyboardHook) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to set keyboard hook!");
+		if (mouseHook) {
+			UnhookWindowsHookEx(mouseHook);
+			mouseHook = NULL;
+		}
+		return false;
+	}
+	return true;
+#endif
+
+#ifdef __APPLE__
+	startMacOSKeyboardHook();
+	if (!eventTap) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to create event tap!");
+		return false;
+	}
+	return true;
+#endif
+
+#ifdef __linux__
+	startLinuxKeyboardHook();
+	if (!display && !linuxHookRunning) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to open X display!");
+		return false;
+	}
+	return true;
+#endif
+
+	return false;
+}
+
+void HotkeyDisplayDock::disableHooks()
+{
+#ifdef _WIN32
+	if (mouseHook) {
+		UnhookWindowsHookEx(mouseHook);
+		mouseHook = NULL;
+	}
+	if (keyboardHook) {
+		UnhookWindowsHookEx(keyboardHook);
+		keyboardHook = NULL;
+	}
+#endif
+
+#ifdef __APPLE__
+	stopMacOSKeyboardHook();
+#endif
+
+#ifdef __linux__
+	stopLinuxKeyboardHook();
+#endif
+
+	stopAllActivities();
+}
+
+void HotkeyDisplayDock::updateUIState(bool enabled)
+{
+	const char *actionText = enabled ? obs_module_text("Dock.Button.Disable") : obs_module_text("Dock.Button.Enable");
+	const char *actionTooltip = enabled ? obs_module_text("Dock.Tooltip.Disable") : obs_module_text("Dock.Tooltip.Enable");
+	const char *labelDesc = enabled ? obs_module_text("Dock.Label.Active") : obs_module_text("Dock.Label.Idle");
+	const char *state = enabled ? "active" : "inactive";
+
+	toggleAction->setChecked(enabled);
+	toggleAction->setText(actionText);
+	toggleAction->setToolTip(actionTooltip);
+
+	label->setProperty("hotkeyState", state);
+	label->setAccessibleDescription(labelDesc);
+	label->style()->unpolish(label);
+	label->style()->polish(label);
 }

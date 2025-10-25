@@ -32,6 +32,13 @@ public:
 	int onScreenTime;
 	bool displayInTextSource;
 
+	// Single key capture settings
+	bool captureNumpad;
+	bool captureNumbers;
+	bool captureLetters;
+	bool capturePunctuation;
+	QString whitelistedKeys;
+
 private:
 	HotkeyDisplayDock *hotkeyDisplayDock;
 	QVBoxLayout *mainLayout;
@@ -55,6 +62,15 @@ private:
 	QPushButton *closeButton;
 	QCheckBox *displayInTextSourceCheckBox;
 	QGroupBox *textSourceGroupBox;
+
+	// Single key capture UI elements
+	QGroupBox *singleKeyGroupBox;
+	QCheckBox *captureNumpadCheckBox;
+	QCheckBox *captureNumbersCheckBox;
+	QCheckBox *captureLettersCheckBox;
+	QCheckBox *capturePunctuationCheckBox;
+	QLabel *whitelistLabel;
+	QLineEdit *whitelistLineEdit;
 
 private slots:
 	void applySettings();

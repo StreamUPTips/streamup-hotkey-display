@@ -1,9 +1,6 @@
 # --- Detect if the plugin is built out of tree or not ---
 if(CMAKE_PROJECT_NAME STREQUAL "obs-studio")
   set(BUILD_OUT_OF_TREE OFF)
-  if(OBS_CMAKE_VERSION VERSION_GREATER_EQUAL 3.0.0)
-    legacy_check()
-  endif()
 else()
   set(BUILD_OUT_OF_TREE ON)
   cmake_minimum_required(VERSION 3.18)
@@ -11,6 +8,13 @@ endif()
 
 project(streamup-hotkey-display VERSION 0.0.1)
 set(PROJECT_FULL_NAME "StreamUP Hotkey Display")
+
+# Require minimum OBS Studio version 30.0.0 for obs_frontend_add_dock_by_id API
+if(NOT BUILD_OUT_OF_TREE)
+  if(OBS_CMAKE_VERSION VERSION_LESS 3.0.0)
+    message(FATAL_ERROR "StreamUP Hotkey Display requires OBS Studio 30.0.0 or newer (OBS_CMAKE_VERSION >= 3.0.0)")
+  endif()
+endif()
 
 # Set new UUIDs when you start to create a new plugin.
 set(MACOS_PACKAGE_UUID "fdb21656-022f-477d-ac1c-2d521e7a9075")

@@ -6,9 +6,18 @@
 #include <QFrame>
 #include <QVBoxLayout>
 #include <QLabel>
-#include <QPushButton>
+#include <QAction>
+#include <QToolBar>
 #include <QTimer>
 #include <obs.h>
+
+// Default value constants
+namespace StyleConstants {
+constexpr const char *DEFAULT_SCENE_NAME = "Default Scene";
+constexpr const char *DEFAULT_TEXT_SOURCE = "Default Text Source";
+constexpr const char *NO_TEXT_SOURCE = "No text source available";
+constexpr int DEFAULT_ONSCREEN_TIME = 100;
+} // namespace StyleConstants
 
 class HotkeyDisplayDock : public QFrame {
 	Q_OBJECT
@@ -27,15 +36,15 @@ public slots:
 
 	bool isHookEnabled() const { return hookEnabled; }
 	void setHookEnabled(bool enabled) { hookEnabled = enabled; }
-	QPushButton *getToggleButton() const { return toggleButton; }
+	QAction *getToggleAction() const { return toggleAction; }
 	QLabel *getLabel() const { return label; }
 
 public:
 	QVBoxLayout *layout;
-	QHBoxLayout *buttonLayout;
+	QToolBar *toolbar;
 	QLabel *label;
-	QPushButton *toggleButton;
-	QPushButton *settingsButton;
+	QAction *toggleAction;
+	QAction *settingsAction;
 	bool hookEnabled;
 	QString sceneName;
 	QString textSource;
@@ -52,6 +61,11 @@ private:
 	bool sceneAndSourceExist();
 	void stopAllActivities();
 	void resetToListeningState();
+
+	// Hook management helpers
+	bool enableHooks();
+	void disableHooks();
+	void updateUIState(bool enabled);
 };
 
 #endif // STREAMUP_HOTKEY_DISPLAY_DOCK_HPP
