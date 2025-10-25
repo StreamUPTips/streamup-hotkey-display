@@ -13,24 +13,6 @@ include(compilerconfig)
 include(defaults)
 include(helpers)
 
-set(PROJECT_DISPLAY_NAME "${PROJECT_NAME}")
-string(JSON _display_name ERROR_VARIABLE _display_name_error GET ${buildspec} displayName)
-if(NOT _display_name_error AND _display_name)
-  set(PROJECT_DISPLAY_NAME "${_display_name}")
-endif()
-
-if(OS_WINDOWS)
-  string(JSON _uuid_windows_app ERROR_VARIABLE _uuid_error GET ${buildspec} uuids windowsApp)
-  if(_uuid_error OR NOT _uuid_windows_app)
-    message(FATAL_ERROR "windowsApp UUID missing from buildspec.json")
-  endif()
-  check_uuid("${_uuid_windows_app}" _uuid_windows_app_valid)
-  if(NOT _uuid_windows_app_valid)
-    message(FATAL_ERROR "Invalid windowsApp UUID '${_uuid_windows_app}' in buildspec.json")
-  endif()
-  set(UUID_APP "${_uuid_windows_app}}")
-endif()
-
 add_library(${PROJECT_NAME} MODULE)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OBS::libobs)
@@ -43,7 +25,7 @@ else()
   target_link_libraries(${PROJECT_NAME} PRIVATE OBS::frontend-api)
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
+find_package(Qt6 COMPONENTS Widgets Core)
 if(BUILD_OUT_OF_TREE)
   if(OS_LINUX OR OS_FREEBSD OR OS_OPENBSD)
     find_package(Qt6 REQUIRED Gui)
@@ -51,28 +33,40 @@ if(BUILD_OUT_OF_TREE)
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Core Qt::Widgets)
 
+# Find and link CURL library
 find_package(CURL REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE CURL::libcurl)
 
+# Determine shared directory path (support both in-tree and out-of-tree builds)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/shared")
+  set(OBS_SHARED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shared")
+else()
+  set(OBS_SHARED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../shared")
+endif()
+
+# Set include directories for the plugin
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+
 if((OS_LINUX OR OS_FREEBSD OR OS_OPENBSD) AND Qt_VERSION VERSION_LESS "6.9.0")
-  target_link_libraries(${PROJECT_NAME} PRIVATE Qt::GuiPrivate)
+	target_link_libraries(${PROJECT_NAME} PRIVATE Qt::GuiPrivate)
 endif()
 
 target_compile_options(
-  ${PROJECT_NAME}
-  PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
-)
-
+${PROJECT_NAME} PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header
+                                -Wno-comma>)
+set_target_properties(${PROJECT_NAME} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_target_properties(
-  ${PROJECT_NAME}
-  PROPERTIES
-    AUTOMOC ON
-    AUTOUIC ON
-    AUTORCC ON
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-)
+${PROJECT_NAME}
+PROPERTIES AUTOMOC ON
+            AUTOUIC ON
+            AUTORCC ON)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
+
+if(OS_WINDOWS)
+  configure_file(cmake/windows/resources/installer-Windows.iss.in "${CMAKE_CURRENT_BINARY_DIR}/installer-Windows.generated.iss")
+endif()
 
 target_sources(${PROJECT_NAME} PRIVATE
   streamup-hotkey-display.cpp
@@ -86,15 +80,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   version.h
 )
 
-if(OS_WINDOWS)
-  configure_file(
-    cmake/windows/resources/installer-Windows.iss.in
-    "${CMAKE_CURRENT_BINARY_DIR}/installer-Windows.generated.iss"
-  )
-endif()
-
 if(BUILD_OUT_OF_TREE)
-  set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
+	set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 else()
-  set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER "plugins/streamup" PREFIX "")
+	set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER "plugins/streamup" PREFIX "")
 endif()
