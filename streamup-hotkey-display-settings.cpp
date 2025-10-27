@@ -27,14 +27,14 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	  closeButton(new QPushButton(obs_module_text("Settings.Button.Close"), this)),
 	  displayInTextSourceCheckBox(new QCheckBox(obs_module_text("Settings.Checkbox.DisplayInTextSource"), this)),
 	  textSourceGroupBox(new QGroupBox(obs_module_text("Settings.Group.TextSource"), this)),
-	  singleKeyGroupBox(new QGroupBox("Single Key Capture", this)),
-	  captureNumpadCheckBox(new QCheckBox("Numpad Keys (0-9, +, -, *, /)", this)),
-	  captureNumbersCheckBox(new QCheckBox("Number Row (0-9)", this)),
-	  captureLettersCheckBox(new QCheckBox("Letters (A-Z)", this)),
-	  capturePunctuationCheckBox(new QCheckBox("Punctuation && Symbols", this)),
-	  whitelistLabel(new QLabel("Manual Whitelist (comma-separated, e.g., Q, W, E, R):", this)),
+	  singleKeyGroupBox(new QGroupBox(obs_module_text("Settings.Group.SingleKeyCapture"), this)),
+	  captureNumpadCheckBox(new QCheckBox(obs_module_text("Settings.Checkbox.CaptureNumpad"), this)),
+	  captureNumbersCheckBox(new QCheckBox(obs_module_text("Settings.Checkbox.CaptureNumbers"), this)),
+	  captureLettersCheckBox(new QCheckBox(obs_module_text("Settings.Checkbox.CaptureLetters"), this)),
+	  capturePunctuationCheckBox(new QCheckBox(obs_module_text("Settings.Checkbox.CapturePunctuation"), this)),
+	  whitelistLabel(new QLabel(obs_module_text("Settings.Label.Whitelist"), this)),
 	  whitelistLineEdit(new QLineEdit(this)),
-	  enableLoggingCheckBox(new QCheckBox("Enable logging to OBS log file", this))
+	  enableLoggingCheckBox(new QCheckBox(obs_module_text("Settings.Checkbox.EnableLogging"), this))
 {
 	setWindowTitle(obs_module_text("Settings.Title"));
 	setAccessibleName(obs_module_text("Settings.Title"));
@@ -58,12 +58,12 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	prefixLineEdit->setToolTip(obs_module_text("Settings.Tooltip.Prefix"));
 	prefixLineEdit->setAccessibleName(obs_module_text("Settings.Label.Prefix"));
 	prefixLineEdit->setAccessibleDescription(obs_module_text("Settings.Tooltip.Prefix"));
-	prefixLineEdit->setPlaceholderText("Optional prefix text...");
+	prefixLineEdit->setPlaceholderText(obs_module_text("Settings.Placeholder.Prefix"));
 
 	suffixLineEdit->setToolTip(obs_module_text("Settings.Tooltip.Suffix"));
 	suffixLineEdit->setAccessibleName(obs_module_text("Settings.Label.Suffix"));
 	suffixLineEdit->setAccessibleDescription(obs_module_text("Settings.Tooltip.Suffix"));
-	suffixLineEdit->setPlaceholderText("Optional suffix text...");
+	suffixLineEdit->setPlaceholderText(obs_module_text("Settings.Placeholder.Suffix"));
 
 	applyButton->setToolTip(obs_module_text("Settings.Tooltip.Apply"));
 	applyButton->setAccessibleName(obs_module_text("Settings.Button.Apply"));
@@ -135,15 +135,15 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	singleKeyGroupBox->setLayout(singleKeyLayout);
 
 	// Set tooltips for single key capture options
-	captureNumpadCheckBox->setToolTip("Capture numpad keys like Num0-9, NumLock, +, -, *, /");
-	captureNumbersCheckBox->setToolTip("Capture number row keys 0-9 (without modifiers)");
-	captureLettersCheckBox->setToolTip("Capture letter keys A-Z (without modifiers)");
-	capturePunctuationCheckBox->setToolTip("Capture punctuation and symbol keys like comma, period, brackets, etc.");
-	whitelistLineEdit->setToolTip("Enter specific keys to capture (e.g., Q, W, E, R, 1, 2, 3)");
-	whitelistLineEdit->setPlaceholderText("e.g., Q, W, E, R, 1, 2, 3");
+	captureNumpadCheckBox->setToolTip(obs_module_text("Settings.Tooltip.CaptureNumpad"));
+	captureNumbersCheckBox->setToolTip(obs_module_text("Settings.Tooltip.CaptureNumbers"));
+	captureLettersCheckBox->setToolTip(obs_module_text("Settings.Tooltip.CaptureLetters"));
+	capturePunctuationCheckBox->setToolTip(obs_module_text("Settings.Tooltip.CapturePunctuation"));
+	whitelistLineEdit->setToolTip(obs_module_text("Settings.Tooltip.Whitelist"));
+	whitelistLineEdit->setPlaceholderText(obs_module_text("Settings.Placeholder.Whitelist"));
 
 	// Set tooltip for logging checkbox
-	enableLoggingCheckBox->setToolTip("Enable logging of key presses to the OBS log file (disabled by default)");
+	enableLoggingCheckBox->setToolTip(obs_module_text("Settings.Tooltip.EnableLogging"));
 
 	mainLayout->addWidget(displayInTextSourceCheckBox);
 	mainLayout->addWidget(textSourceGroupBox); // Add the group box to the main layout
