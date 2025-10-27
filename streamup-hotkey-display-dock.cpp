@@ -63,9 +63,18 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 	setMinimumWidth(100);
 	setMinimumHeight(50);
 
-	// Set layout properties (zero margins and spacing like OBS)
+	// Set layout properties - no margins/spacing (we'll add them manually)
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(0);
+
+	// Add top spacing (8px above label)
+	layout->addSpacing(8);
+
+	// Create a horizontal layout to add left/right margins to the label only
+	QHBoxLayout *labelLayout = new QHBoxLayout();
+	labelLayout->setObjectName("hotkeyDisplayLabelLayout");
+	labelLayout->setContentsMargins(8, 0, 8, 0); // 8px left and right margins
+	labelLayout->setSpacing(0);
 
 	label->setAlignment(Qt::AlignCenter);
 	label->setFrameShape(QFrame::NoFrame);
@@ -93,8 +102,14 @@ HotkeyDisplayDock::HotkeyDisplayDock(QWidget *parent)
 		"}"
 	);
 
-	// Add label with stretch factor 1 (expands to fill space)
-	layout->addWidget(label, 1);
+	// Add label to the horizontal layout
+	labelLayout->addWidget(label);
+
+	// Add the label layout to main layout with stretch factor 1 (expands to fill space)
+	layout->addLayout(labelLayout, 1);
+
+	// Add spacing between label and toolbar (8px)
+	layout->addSpacing(8);
 
 	// Configure toolbar (matching OBS style)
 	toolbar->setMovable(false);

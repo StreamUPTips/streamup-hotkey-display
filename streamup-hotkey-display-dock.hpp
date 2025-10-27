@@ -5,6 +5,7 @@
 
 #include <QFrame>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QAction>
 #include <QToolBar>
