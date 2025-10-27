@@ -9,6 +9,8 @@
 - Added mouse click detection
 - Added required modifier key for mouse actions
 - Update to OBS 32
+- Refined the dock layout spacing so the hotkey display matches OBS theming margins
+- Added localisation
 
 ## v0.0.1 (10 Sept '24)
 **Initial Release**
